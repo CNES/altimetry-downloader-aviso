@@ -51,8 +51,17 @@ This will print a concise overview of the products (short names and titles).
     ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     ┃ Short Name                    ┃ Title                                                                                              ┃
     ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+    │ L4_exp_with_SWOT              │ Experimental Products: Multimission Gridded (with SWOT) Level-4 Sea Surface Heights and Velocities │
     │ SWOT_L2_LR_SSH_Basic          │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - Basic                                          │
+    │ SWOT_L2_LR_SSH_Expert         │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - Expert                                         │
+    │ SWOT_L2_LR_SSH_Unsmoothed     │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - Unsmoothed                                     │
+    │ SWOT_L2_LR_SSH_WindWave       │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - WindWave                                       │
     │ SWOT_L3_LR_SSH_Basic          │ Altimetry product SWOT Level-3 Low Rate SSH - Basic                                                │
+    │ SWOT_L3_LR_SSH_Expert         │ Altimetry product SWOT Level-3 Low Rate SSH - Expert                                               │
+    │ SWOT_L3_LR_SSH_Technical      │ Altimetry product SWOT Level-3 Low Rate SSH - Technical                                            │
+    │ SWOT_L3_LR_SSH_Unsmoothed     │ Altimetry product SWOT Level-3 Low Rate SSH - Unsmoothed                                           │
+    │ SWOT_L3_LR_WIND_WAVE_Extended │ Wind & Wave product SWOT Level-3 WindWave - Extended                                               │
+    │ SWOT_L3_LR_WIND_WAVE_Light    │ Wind & Wave product SWOT Level-3 WindWave - Light                                                  │
     └───────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 
@@ -94,7 +103,7 @@ Retrieve detailed metadata for a specific Aviso product using ``details`` comman
     │ │ Level                     │ L3                                                                                                                                                                                                                                                                               │ │
     │ │ URL                       │ https://tds%40odatis-ocean.fr:odatis@tds-odatis.aviso.altimetry.fr/thredds/catalog/L3/SWOT_KARIN-L3_LR_SSH.html                                                                                                                                                                  │ │
     │ │ DOI                       │ https://doi.org/10.24400/527896/A01-2023.017                                                                                                                                                                                                                                     │ │
-    │ │ Last Update               │ 2025-03-14 23:00:00+00:00                                                                                                                                                                                                                                                        │ │
+    │ │ Last Update               │ 2025-11-26 23:00:00+00:00                                                                                                                                                                                                                                                  │ │
     │ │ Last Version              │ v3.0                                                                                                                                                                                                                                                                           │ │
     │ │ Credit                    │ CDS-AVISO                                                                                                                                                                                                                                                                        │ │
     │ │ Organisation              │ AVISO                                                                                                                                                                                                                                                                            │ │

@@ -16,6 +16,14 @@ products:
       version: '3.0'
       subset: Expert
 
+  785031bd-c54f-4a9b-a10e-7f76df114481:
+    short_name: SWOT_L3_LR_SSH_Technical
+    data_type: SWOT_L3_LR_SSH
+    catalog_path: dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/
+    filters:
+      version: '3.0'
+      subset: Technical
+
   de48c5b5-18f7-4829-ba0e-78f3dff047ac:
     short_name: SWOT_L3_LR_SSH_Unsmoothed
     data_type: SWOT_L3_LR_SSH
