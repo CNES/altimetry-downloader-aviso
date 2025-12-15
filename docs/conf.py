@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath(".."))
 project = "Altimetry Downloader Aviso"
 copyright = "2025, CLS/CNES"
 author = "CLS/CNES"
-release = "1.0"
+release = "0.2.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -27,9 +27,6 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "alabaster"
-html_static_path = ["_static"]
-
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",  # support Google/Numpy style docstrings
@@ -38,13 +35,12 @@ extensions = [
     "sphinx.ext.intersphinx",
 ]
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_book_theme"
 html_static_path = ["_static"]
 html_last_updated_fmt = "%a, %d %B %Y %H:%M:%S"
 html_logo = "_static/logo-aviso.jpeg"
 
 html_theme_options = {
-    "logo_only": True,
     "navigation_depth": 4,
 }
 

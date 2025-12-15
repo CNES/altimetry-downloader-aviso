@@ -35,7 +35,7 @@ offering these capabilities:
    :caption: REFERENCE
 
    api
-   changes
+   changelog
 
 
 Indices et tables
