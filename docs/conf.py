@@ -33,6 +33,7 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
+    "sphinx_design",
 ]
 
 html_theme = "sphinx_book_theme"
