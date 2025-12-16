@@ -2,7 +2,7 @@ Release Notes
 =============
 
 
-0.2.0 (2025-12-15)
+0.2.1 (2025-12-15)
 ------------------
 
 The L3 LR SSH Technical product has been added to the list of supported products.
