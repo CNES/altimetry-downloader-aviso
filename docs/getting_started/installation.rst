@@ -1,24 +1,31 @@
 Installation
 ============
 
+.. tab-set::
 
-Installing with conda-forge
----------------------------
+    .. tab-item:: Conda
 
-The package is available on the **conda-forge** channel.
+        You can install or upgrade Altimetry Downloader Aviso using the `conda install
+        <https://docs.conda.io/projects/conda/en/latest/commands/install.html>`_
+        command:
 
-To install it using ``conda``:
+        .. code:: bash
 
-.. code-block:: bash
+            conda install altimetry-downloader-aviso -c conda-forge
 
-   conda install altimetry-downloader-aviso -c conda-forge
+        This will install a minimal set of dependencies required to run
+        Altimetry Downloader Aviso similar to ``python -m pip install altimetry-downloader-aviso``
 
 
-Installing with pip
--------------------
+    .. tab-item:: Pip
 
-Alternatively, you can install the package directly from **PyPI** using ``pip``:
+        You can install or upgrade Altimetry Downloader Aviso using the `pip install
+        <https://packaging.python.org/en/latest/tutorials/installing-packages/>`_
+        command:
 
-.. code-block:: bash
+        .. code:: bash
 
-   pip install altimetry-downloader-aviso
+            pip install altimetry-downloader-aviso
+
+        This will install a minimal set of dependencies required to run
+        Altimetry Downloader Aviso similar to ``conda install altimetry-downloader-aviso -c conda_forge``
