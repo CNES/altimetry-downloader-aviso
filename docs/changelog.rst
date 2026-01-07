@@ -2,6 +2,12 @@ Release Notes
 =============
 
 
+0.2.2 (2026-01-07)
+------------------
+
+Get command returns the list of local file paths even when no files are downloaded because
+they already exist locally.
+
 0.2.1 (2025-12-15)
 ------------------
 

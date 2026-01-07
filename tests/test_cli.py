@@ -185,7 +185,7 @@ def test_get_simple_filters(mocker, tmp_path):
         ],
     )
     assert result.exit_code == 0
-    assert "Downloaded files (2)" in result.output
+    assert "Local files (2)" in result.output
     assert "- file_01.nc" in result.output
     assert "- file_02.nc" in result.output
 

@@ -40,7 +40,7 @@ def test_http_single_download_success(mocker, tmp_path):
         assert f.read() == fake_data
 
     result_path = http_single_download(url, tmp_path)
-    assert not result_path
+    assert result_path == str(expected_path)
 
     result_path = http_single_download(url, tmp_path, overwrite=True)
     assert result_path == str(expected_path)

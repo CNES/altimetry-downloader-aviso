@@ -53,7 +53,7 @@ def http_single_download(
 
     if not overwrite and local_filepath.exists():
         logger.debug("File %s already exist. Ignore download.", local_filepath)
-        return None
+        return str(local_filepath)
 
     response = requests.get(url, auth=(username, password))
     response.raise_for_status()

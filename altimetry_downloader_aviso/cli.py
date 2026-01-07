@@ -201,7 +201,7 @@ def get(
             overwrite=overwrite,
         )
 
-        console.print(f"[green]Downloaded files ({len(downloaded_files)}) :[/]")
+        console.print(f"[green]Local files ({len(downloaded_files)}) :[/]")
 
         for file in downloaded_files:
             console.print(f"- {file}")

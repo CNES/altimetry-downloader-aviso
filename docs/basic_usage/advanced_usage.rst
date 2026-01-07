@@ -78,7 +78,7 @@ By default, already existing files are not re-downloaded. Use ``overwrite=True``
     INFO:altimetry_downloader_aviso.catalog_client.granule_discoverer:Filtering SWOT_L3_LR_SSH_Basic product with filters {'cycle_number': 7, 'pass_number': 12}...
     INFO:altimetry_downloader_aviso.core:0 files to download. 1 files already exist.
     >>> print(local_files)
-    []
+    ['aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v3.0.nc']
 
 .. code-block:: pycon
 

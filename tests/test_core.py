@@ -76,7 +76,7 @@ def test_get_overwrite(tmp_path):
     filters = {"cycle_number": [2, 3], "overwrite": False}
     files3 = ["dataset_03.nc", "dataset_33.nc"]
     local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)
-    assert local_files == [os.path.join(tmp_path, f) for f in files3]
+    assert local_files == [os.path.join(tmp_path, f) for f in files2 + files3]
 
     filters["overwrite"] = True
     local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)

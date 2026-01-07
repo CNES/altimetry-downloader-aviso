@@ -88,22 +88,15 @@ def get(
     if overwrite:
         logger.info("%d files to download.", len(granule_paths))
     else:
-        files_to_download = [
-            pl.Path(output_dir) / os.path.basename(p) for p in granule_paths
-        ]
-        non_existing_files = [
-            p for p, f in zip(granule_paths, files_to_download) if not f.exists()
+        local_files = [pl.Path(output_dir) / os.path.basename(p) for p in granule_paths]
+        non_existing_granules = [
+            p for p, f in zip(granule_paths, local_files) if not f.exists()
         ]
         logger.info(
             "%d files to download. %d files already exist.",
-            len(non_existing_files),
-            len(granule_paths) - len(non_existing_files),
+            len(non_existing_granules),
+            len(granule_paths) - len(non_existing_granules),
         )
-        logger.debug(
-            "Existing files: %s",
-            [str(f) for f in files_to_download if f not in non_existing_files],
-        )
-        granule_paths = non_existing_files
 
     logger.debug("Downloading granules: %s...", list(granule_paths))
 
