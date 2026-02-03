@@ -1,19 +1,16 @@
 # Altimetry Downloader Aviso
 
-A client to download data available on Aviso.
+A tool to easily search and download altimetry products from the Aviso catalog.
 
-## Install
+- List products available and retrieve their metadata information
+- Apply filters to download files in their original NetCDF format, via Aviso's Thredds Data Server using HTTPS connection.
+- Both a command line interface and a Python interface
 
-### Conda
+
+## Quick start
 
 ```bash
 conda install -c conda-forge altimetry-downloader-aviso
-```
-
-### Pypi
-
-```bash
-pip install altimetry-downloader-aviso
 ```
 
 ## Use
@@ -21,7 +18,7 @@ pip install altimetry-downloader-aviso
 
 ### List products available in Aviso's catalog
 
-The first version of the client is set up to download Swot products.
+For now, the tool only allows users to browse and download SWOT products.
 
 ```python
 
@@ -98,6 +95,18 @@ Downloaded files (2) :
 
 ```
 
-# More information
+## Documentation
 
-For more information on how to to use altimetry-downloader-aviso, see [documentation](https://robin-cls.github.io/aviso/)
+📘 **Full documentation:**
+https://robin-cls.github.io/aviso/index.html#
+
+Key pages:
+- [Installation](https://robin-cls.github.io/aviso/getting_started/installation.html)
+- [Command line interface](https://robin-cls.github.io/aviso/getting_started/command_line_interface.html)
+- [Python interface](https://robin-cls.github.io/aviso/getting_started/python_interface.html)
+- [Changelog](https://robin-cls.github.io/aviso/changelog.html)
+
+
+## License
+
+Apache 2.0 — see [LICENSE](LICENSE)
