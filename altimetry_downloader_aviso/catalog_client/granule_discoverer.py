@@ -37,6 +37,18 @@ class GranuleNode(FileNode):
 
 
 class RemoteDirNode(INode):
+    """Folder node of a TDS tree.
+
+    Parameters
+    ----------
+    name
+        Name of the node (not the URL): ex. cycle_001
+    info
+        Additional information. "name" should be present and contain the URL
+        ex. {"name": "https://tds.mock.fr/mydataset/catalog.xml"}
+    level
+        Level of the node with respect to the tree root. Set to 0 for the root.
+    """
 
     def __init__(
         self,
@@ -114,10 +126,11 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
         str(Path(product_layout_conf.catalog_path) / "catalog.xml"),
     )
 
-    # Root node of the TDS
+    # Root node of the TDS. The node name (not the URL) should be given as an argument,
+    # whereas the URL is given in the additional information
     root_node = RemoteDirNode(product_layout_conf.catalog_path, {"name": tds_url}, 0)
 
-    # Create the file discoverer for this TDS catalog
+    # Create the file metadata collector for this TDS catalog
     file_discoverer = FileSystemMetadataCollector(
         layouts=product_layout_conf.layouts, root_node=root_node
     )
@@ -159,10 +172,10 @@ class ProductLayoutConfig:
         Unique identifier of the product layout.
     short_name: str
         Short name of the product (used as reference in CLI or metadata).
-    convention: FileNameConvention
-        Convention used for naming files related to the product.
-    layout: Layout
-        Layout structure used to organize the product files and directories.
+    layouts: Layout
+        Layout structures used to organize the product files and directories. Contain
+        semantic information for both folders and granules. Can be a list to handle TDS
+        trees that mixes multiple structures.
     catalog_path: str
         Relative or absolute path to the product catalog location.
     default_filters: dict
