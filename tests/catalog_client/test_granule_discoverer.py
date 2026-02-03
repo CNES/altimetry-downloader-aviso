@@ -1,4 +1,5 @@
 import pytest
+from fcollections.core import FileSystemMetadataCollector, Layout
 from requests.exceptions import ProxyError
 
 from altimetry_downloader_aviso.catalog_client.geonetwork.models.model import (
@@ -6,14 +7,20 @@ from altimetry_downloader_aviso.catalog_client.geonetwork.models.model import (
 )
 from altimetry_downloader_aviso.catalog_client.granule_discoverer import (
     ProductLayoutConfig,
-    TDSIterable,
+    RemoteDirNode,
     _load_convention_layout,
     _parse_tds_layout,
     filter_granules,
 )
 
 
-class Test_TDSIterable:
+@pytest.fixture
+def metadata_collector(test_layouts: list[Layout]) -> FileSystemMetadataCollector:
+    root_node = RemoteDirNode("root", {"name": "https://tds.mock/catalog.xml"}, 0)
+    return FileSystemMetadataCollector(test_layouts, root_node)
+
+
+class Test_FileSystemMetadataCollector:
 
     @pytest.mark.parametrize(
         "filter, exp_urls",
@@ -80,13 +87,15 @@ class Test_TDSIterable:
             ),
         ],
     )
-    def test_find(self, tds_iterable, filter, exp_urls):
-        urls = tds_iterable.find("https://tds.mock/catalog.xml", **filter)
+    def test_find(self, metadata_collector, filter, exp_urls):
+        dataframe = metadata_collector.to_dataframe(**filter)
+        urls = dataframe["filename"].tolist()
 
         assert urls == exp_urls
 
-    def test_find_not_layout(self):
-        urls = TDSIterable().find("https://tds.mock/catalog.xml", {"filter1": 12})
+    def test_find_not_layout(self, metadata_collector):
+        dataframe = metadata_collector.to_dataframe(filter1=12, enable_layouts=False)
+        urls = dataframe["filename"].tolist()
 
         assert urls == [
             "https://tds.mock/dataset_01.nc",
@@ -115,20 +124,17 @@ class Test_TDSIterable:
             )
         ],
     )
-    def test_find_bad_filter(self, tds_iterable, filter, exp_urls):
-        with pytest.warns(
-            UserWarning,
-            match=(
-                "Layout has been configured with unknown"
-                " references '{'bad_filter'}'. They will be ignored."
-            ),
-        ):
-            urls = tds_iterable.find("https://tds.mock/catalog.xml", **filter)
-            assert urls == exp_urls
+    def test_find_bad_filter(self, metadata_collector, filter, exp_urls):
+        # No warning, only a log message stating that the parameter is ignored
+        dataframe = metadata_collector.to_dataframe(**filter)
+        urls = dataframe["filename"].tolist()
+        assert urls == exp_urls
 
-    def test_find_bad_url(self, tds_iterable):
+    def test_find_bad_url(self, test_layouts):
+        root_node = RemoteDirNode("root", {"name": "https://bad_url/catalog.xml"}, 0)
+        collector = FileSystemMetadataCollector(test_layouts, root_node)
         with pytest.raises(ProxyError) as exc_info:
-            tds_iterable.find("https://bad_url/catalog.xml")
+            collector.to_dataframe()
 
         assert (
             "HTTPSConnectionPool(host='https://bad_url/catalog.xml', port=443): "
@@ -150,8 +156,8 @@ def test_filter_granules():
     assert list(urls) == ["https://tds.mock/productA_path/cycle_03/dataset_03.nc"]
 
 
-def test_load_convention_layout(patch_some, test_layout, test_filename_convention):
-    conf = {"TEST_TYPE": ["FileNameConventionSwotL3", "AVISO_L3_LR_SSH_LAYOUT"]}
+def test_load_convention_layout(patch_some, test_layouts):
+    conf = {"TEST_TYPE": "MyDatabase"}
     with pytest.raises(
         KeyError,
         match="The data type BAD_TYPE is missing from the "
@@ -159,18 +165,15 @@ def test_load_convention_layout(patch_some, test_layout, test_filename_conventio
     ):
         _load_convention_layout(conf, "BAD_TYPE")
 
-    conv, layout = _load_convention_layout(conf, "TEST_TYPE")
-    assert type(conv) is type(test_filename_convention)
-    assert layout == test_layout
+    layouts = _load_convention_layout(conf, "TEST_TYPE")
+    assert layouts == test_layouts
 
 
 @pytest.mark.parametrize(
     "_id, short_name, path_filter",
     [("productA", "sample_product_a", "A"), ("productB", "sample_product_b", "B")],
 )
-def test_parse_tds_layout(
-    patch_some, test_layout, test_filename_convention, _id, short_name, path_filter
-):
+def test_parse_tds_layout(patch_some, test_layouts, _id, short_name, path_filter):
     pl_conf = _parse_tds_layout(AvisoProduct(id=_id))
     assert isinstance(pl_conf, ProductLayoutConfig)
 
@@ -178,11 +181,10 @@ def test_parse_tds_layout(
     assert pl_conf.default_filters == {"path_filter": path_filter}
     assert pl_conf.catalog_path == f"{_id}_path"
     assert pl_conf.short_name == short_name
-    assert pl_conf.layout == test_layout
-    assert type(pl_conf.convention) is type(test_filename_convention)
+    assert pl_conf.layouts == test_layouts
 
 
-def test_parse_tds_layout_no_filter(patch_some):
+def test_parse_tds_layout_no_filter():
     pl_conf = _parse_tds_layout(AvisoProduct(id="productC"))
     assert isinstance(pl_conf, ProductLayoutConfig)
 

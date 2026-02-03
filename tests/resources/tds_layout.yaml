@@ -21,3 +21,4 @@ products:
 
 granule_discovery:
   TEST_TYPE: MyDatabase
+  TEST_TYPE_2: MyDatabase2

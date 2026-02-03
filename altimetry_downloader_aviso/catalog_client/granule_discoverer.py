@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 
 import yaml
 from fcollections.core import (
+    FileNode,
     FilesDatabase,
     FileSystemMetadataCollector,
     INode,
@@ -31,21 +32,8 @@ TDS_CATALOG_BASE_URL = "https://tds-odatis.aviso.altimetry.fr/thredds/catalog/"
 TDS_LAYOUT_CONFIG = Path(__file__).parent / "resources" / "tds_layout.yaml"
 
 
-class GranuleNode(INode):
+class GranuleNode(FileNode):
     """File node of a TDS tree."""
-
-    def accept(self, visitor: LayoutVisitor) -> VisitResult:
-        return visitor.visit_file(self)
-
-    def children(self) -> tp.Iterator[INode]:
-        """List child nodes.
-
-        Returns
-        -------
-        :
-            An empty list (granules have no children)
-        """
-        return []
 
 
 class RemoteDirNode(INode):

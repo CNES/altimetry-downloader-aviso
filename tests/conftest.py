@@ -146,6 +146,7 @@ TEST_LAYOUT = Layout(
             [FileNameFieldInteger("cycle_number")],
             "cycle_{cycle_number:0>2d}",
         ),
+        FileNameConventionTest(),
     ]
 )
 
@@ -166,14 +167,13 @@ class MyDatabase(FilesDatabase):
     reader = OpenMfDataset()
 
 
-@pytest.fixture
-def test_filename_convention():
-    return FileNameConventionTest()
+class MyDatabase2(FilesDatabase):
+    layouts = [TEST_LAYOUT, Layout([FileNameConventionTest()])]
 
 
 @pytest.fixture
-def test_layout():
-    return TEST_LAYOUT
+def test_layouts() -> list[Layout]:
+    return MyDatabase2.layouts
 
 
 @pytest.fixture
@@ -181,10 +181,9 @@ def test_product_layout():
     return TEST_PRODUCT_LAYOUT
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_some(mocker):
-    pass
-    # mocker.patch("fcollections.implementations.AVISO_L3_LR_SSH_LAYOUT", TEST_LAYOUT)
+    mocker.patch("fcollections.implementations.MyDatabase", MyDatabase2)
 
 
 @pytest.fixture(autouse=True)
