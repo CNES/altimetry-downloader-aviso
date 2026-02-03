@@ -80,7 +80,7 @@ products:
     catalog_path: dataset-duacs-experimental-dt-phy-grids-nadirs-and-wide-swath
 
 granule_discovery:
-  SWOT_L2_LR_SSH: [FileNameConventionSwotL2, AVISO_L2_LR_SSH_LAYOUT]
-  SWOT_L3_LR_SSH: [FileNameConventionSwotL3, AVISO_L3_LR_SSH_LAYOUT]
-  SWOT_L3_LR_WIND_WAVE: [FileNameConventionSwotL3WW, AVISO_L3_LR_SSH_LAYOUT]
-  SWOT_L4: [FileNameConventionGriddedSLA, AVISO_L4_SWOT_LAYOUT]
+  SWOT_L2_LR_SSH: BasicNetcdfFilesDatabaseSwotLRL2
+  SWOT_L3_LR_SSH: BasicNetcdfFilesDatabaseSwotLRL3
+  SWOT_L3_LR_WIND_WAVE: BasicNetcdfFilesDatabaseSwotLRWW
+  SWOT_L4: NetcdfFilesDatabaseGriddedSLA

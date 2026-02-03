@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 import yaml
-from fcollections.core import FileDiscoverer, FileNameConvention, ITreeIterable, Layout
+from fcollections.core import FilesDatabase, FileSystemMetadataCollector, INode, FileNameConvention, Layout
 from siphon.catalog import TDSCatalog
 
 from .geonetwork import AvisoProduct
@@ -24,57 +24,70 @@ TDS_CATALOG_BASE_URL = "https://tds-odatis.aviso.altimetry.fr/thredds/catalog/"
 TDS_LAYOUT_CONFIG = Path(__file__).parent / "resources" / "tds_layout.yaml"
 
 
-class TDSIterable(ITreeIterable):
-    """List files or links in a TDS Server.
+class GranuleNode(INode):
+    """File node of a file system tree."""
 
-    Parameters
-    ----------
-    layout
-        Layout allowing to guess the tree structure and eventually discard some
-        branches along the search
-    """
+    def accept(self, visitor: LayoutVisitor) -> VisitResult:
+        return visitor.visit_file(self)
 
-    def __init__(self, layout: Layout | None = None):
-        super().__init__(layout)
+    def children(self) -> tp.Iterator[INode]:
+        """List child nodes.
 
-    def find(
-        self, root: str, detail: bool = False, **filters: tp.Any
-    ) -> tp.Iterator[str | dict[str, str]]:
+        Returns
+        -------
+        :
+            An empty list (granules have no children)
+        """
+        return []
 
-        if self.layout is not None:
-            self.layout.set_filters(**filters)
+class RemoteDirNode(INode):
+    
+    def __init__(
+        self,
+        name: str,
+        info: dict[str, tp.Any],
+        level: int,
+    ):
+        super().__init__(name, info, level)
+        self._children: list[INode] | None = None
 
-        logger.debug("Browsing TDS layout with filters: %s", filters)
+    def accept(self, visitor: LayoutVisitor) -> VisitResult:
+        return visitor.visit_dir(self)
 
-        return self._find(root, **filters)
+    def children(self) -> tp.Iterable[INode]:
+        # Cache children computation to avoid expensive relisting and ensure
+        # that one path on the filesystem will be represented by the same node
+        if self._children is None:
+            self._children = list(self._compute_children())
+        return self._children
 
-    def _find(self, url: str, level: int = 0, **filters):
-        cat = TDSCatalog(url)
+    def _compute_children(self) -> tp.Iterator[INode]:
+        # return list of GranuleNode and RemoteFolderNode
+        cat = TDSCatalog(self.name)
+        next_level = self.level + 1
 
-        results = [d.access_urls["HTTPServer"] for d in cat.datasets.values()]
+        granules = [
+            GranuleNode(d.access_urls["HTTPServer"], {"name": name}, next_level)
+            for name, d in cat.datasets.items()]
 
-        for folder, ref in cat.catalog_refs.items():
-            # If name doesn't correspond to filters, continue
-            if self.layout is not None and not self.layout.test(level, folder):
-                logger.debug("Ignore folder %s", folder)
-                continue
+        # Each `catalog_refs` should have (name, ref), and it should be possible
+        # to follow `ref` with `child = ref.follow()`. But there is a "name"
+        # marker missing somewhere in the Odatis TDS catalog.xml, so it's not
+        # possible to follow the ref directly.
+        # Instead, we use the `href` and create a new TDSCatalog object with it.
+        # Example:
+        #   ref.href = https://tds-odatis.aviso.altimetry.fr/thredds/catalog/
+        #              dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/v1_0_1/Unsmoothed/
+        #              cycle_001/catalog.xml
+        catalog_refs = [
+            RemoteFolderNode(
+                ref,
+                {"name": "folder"},
+                self.level + 1)
+            for folder, ref in cat.catalog_refs.items():
+        ]
 
-            next_level = level + 1
-
-            # Each `catalog_refs` should have (name, ref), and it should be possible
-            # to follow `ref` with `child = ref.follow()`. But there is a "name"
-            # marker missing somewhere in the Odatis TDS catalog.xml, so it's not
-            # possible to follow the ref directly.
-            # Instead, we use the `href` and create a new TDSCatalog object with it.
-            # Example:
-            #   ref.href = https://tds-odatis.aviso.altimetry.fr/thredds/catalog/
-            #              dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/v1_0_1/Unsmoothed/
-            #              cycle_001/catalog.xml
-
-            results += self._find(ref.href, next_level, **filters)
-
-        return results
-
+        return granules + catalog_refs
 
 def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     """Filter granules of a product in AVISO's Thredds Data Server.
@@ -107,21 +120,20 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     )
 
     # Create the file discoverer for this TDS catalog
-    file_discoverer = FileDiscoverer(
-        parser=product_layout_conf.convention,
-        iterable=TDSIterable(layout=product_layout_conf.layout),
-    )
+    file_discoverer = FileSystemMetadataCollector(
+        layouts=[product_layout_conf.layouts],
+        root_node=RemoteFolderNode(tds_url))
 
     filters = {**product_layout_conf.default_filters, **filters}
 
-    granules = file_discoverer.list(path=tds_url, **filters)
+    granules = file_discoverer.to_dataframe(**filters)
 
     return granules.filename
 
 
 def _load_convention_layout(
     granule_discovery: dict, data_type: str
-) -> tuple[FileNameConvention, Layout]:
+) -> tuple[list[Layout]]:
     """Load the fcollections convention and layout objects from a data type."""
     if data_type not in granule_discovery:
         msg = (
@@ -129,12 +141,12 @@ def _load_convention_layout(
             "tds_layout|granule_discovery configuration."
         )
         raise KeyError(msg)
-    convention, layout = granule_discovery[data_type]
+    files_database_cls_name = granule_discovery[data_type]
 
-    convention_obj, layout_obj = getattr(
-        fcollections.implementations, convention
-    )(), getattr(fcollections.implementations, layout)
-    return convention_obj, layout_obj
+    files_database_cls: FilesDatabase = getattr(
+        fcollections.implementations, files_database_cls_name
+    )
+    return files_database_cls.layouts
 
 
 @dataclass
@@ -161,8 +173,7 @@ class ProductLayoutConfig:
 
     id: str
     short_name: str
-    convention: FileNameConvention
-    layout: Layout
+    layouts: list[Layout]
     catalog_path: str
     default_filters: dict
 
@@ -188,7 +199,7 @@ def _parse_tds_layout(product: AvisoProduct) -> ProductLayoutConfig:
 
         granule_discovery = tds_layout["granule_discovery"]
         data_type = product_layout["data_type"]
-        convention_obj, layout_obj = _load_convention_layout(
+        layouts_obj = _load_convention_layout(
             granule_discovery, data_type
         )
 
@@ -198,8 +209,7 @@ def _parse_tds_layout(product: AvisoProduct) -> ProductLayoutConfig:
         return ProductLayoutConfig(
             id=product.id,
             short_name=product_layout["short_name"],
-            convention=convention_obj,
-            layout=layout_obj,
+            layout=layouts_obj,
             catalog_path=product_layout["catalog_path"],
             default_filters=product_layout["filters"],
         )
