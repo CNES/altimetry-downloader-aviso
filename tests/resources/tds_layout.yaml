@@ -20,4 +20,4 @@ products:
     catalog_path: productC_path
 
 granule_discovery:
-  TEST_TYPE: [FileNameConventionSwotL3, AVISO_L3_LR_SSH_LAYOUT]
+  TEST_TYPE: MyDatabase

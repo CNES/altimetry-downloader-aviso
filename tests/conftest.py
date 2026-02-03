@@ -2,17 +2,19 @@ import json
 import re
 from pathlib import Path
 
+import fcollections.implementations
 import pytest
 from fcollections.core import (
     FileNameConvention,
     FileNameFieldInteger,
     FileNameFieldString,
+    FilesDatabase,
     Layout,
+    OpenMfDataset,
 )
 from requests.exceptions import ProxyError
 
 import altimetry_downloader_aviso.auth
-from altimetry_downloader_aviso.catalog_client.granule_discoverer import TDSIterable
 
 # PATCH GEONETWORK CATALOG RESPONSES
 
@@ -153,9 +155,15 @@ TEST_PRODUCT_LAYOUT = Layout(
             re.compile(r"cycle_(?P<cycle_number>\d{2})"),
             [FileNameFieldInteger("cycle_number")],
             "cycle_{cycle_number:0>2d}",
-        )
+        ),
+        FileNameConventionTest(),
     ]
 )
+
+
+class MyDatabase(FilesDatabase):
+    layouts = [TEST_PRODUCT_LAYOUT]
+    reader = OpenMfDataset()
 
 
 @pytest.fixture
@@ -173,25 +181,15 @@ def test_product_layout():
     return TEST_PRODUCT_LAYOUT
 
 
-@pytest.fixture
-def tds_iterable(test_layout):
-    return TDSIterable(test_layout)
-
-
 @pytest.fixture()
 def patch_some(mocker):
-    mocker.patch("fcollections.implementations.AVISO_L3_LR_SSH_LAYOUT", TEST_LAYOUT)
+    pass
+    # mocker.patch("fcollections.implementations.AVISO_L3_LR_SSH_LAYOUT", TEST_LAYOUT)
 
 
 @pytest.fixture(autouse=True)
 def patch_all(mocker):
-    mocker.patch(
-        "fcollections.implementations.FileNameConventionSwotL3", FileNameConventionTest
-    )
-
-    mocker.patch(
-        "fcollections.implementations.AVISO_L3_LR_SSH_LAYOUT", TEST_PRODUCT_LAYOUT
-    )
+    setattr(fcollections.implementations, "MyDatabase", MyDatabase)
 
     mocker.patch(
         (
@@ -242,7 +240,8 @@ def mock_tds_catalog(mocker):
 
     mock_catalog_vA_2 = mocker.Mock()
     mock_catalog_vA_2.datasets = {
-        f"ds{nb}": _get_dataset("/productA_path/cycle_02", nb) for nb in [2, 22]
+        f"dataset_{nb:0>2d}.nc": _get_dataset("/productA_path/cycle_02", nb)
+        for nb in [2, 22]
     }
     mock_catalog_vA_2.catalog_refs = {}
 
@@ -251,7 +250,8 @@ def mock_tds_catalog(mocker):
 
     mock_catalog_vA_3 = mocker.Mock()
     mock_catalog_vA_3.datasets = {
-        f"ds{nb}": _get_dataset("/productA_path/cycle_03", nb) for nb in [3, 33]
+        f"dataset_{nb:0>2d}.nc": _get_dataset("/productA_path/cycle_03", nb)
+        for nb in [3, 33]
     }
     mock_catalog_vA_3.catalog_refs = {}
 
@@ -260,7 +260,8 @@ def mock_tds_catalog(mocker):
 
     mock_catalog_vB_4 = mocker.Mock()
     mock_catalog_vB_4.datasets = {
-        f"ds{nb}": _get_dataset("/productB_path/cycle_04", nb) for nb in [4, 44]
+        f"dataset_{nb:0>2d}.nc": _get_dataset("/productB_path/cycle_04", nb)
+        for nb in [4, 44]
     }
     mock_catalog_vB_4.catalog_refs = {}
 
@@ -289,7 +290,9 @@ def mock_tds_catalog(mocker):
     def tds_catalog_side_effect(url):
         if url == "https://tds.mock/catalog.xml":
             mock_root = mocker.Mock()
-            mock_root.datasets = {f"ds{nb}": _get_dataset("", nb) for nb in [1]}
+            mock_root.datasets = {
+                f"dataset_{nb:0>2d}.nc": _get_dataset("", nb) for nb in [1]
+            }
             mock_root.catalog_refs = {
                 "productA_path": mock_ref_vA,
                 "productB_path": mock_ref_vB,

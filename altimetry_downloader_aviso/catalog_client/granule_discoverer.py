@@ -6,7 +6,14 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 import yaml
-from fcollections.core import FilesDatabase, FileSystemMetadataCollector, INode, FileNameConvention, Layout
+from fcollections.core import (
+    FilesDatabase,
+    FileSystemMetadataCollector,
+    INode,
+    Layout,
+    LayoutVisitor,
+    VisitResult,
+)
 from siphon.catalog import TDSCatalog
 
 from .geonetwork import AvisoProduct
@@ -25,7 +32,7 @@ TDS_LAYOUT_CONFIG = Path(__file__).parent / "resources" / "tds_layout.yaml"
 
 
 class GranuleNode(INode):
-    """File node of a file system tree."""
+    """File node of a TDS tree."""
 
     def accept(self, visitor: LayoutVisitor) -> VisitResult:
         return visitor.visit_file(self)
@@ -40,8 +47,9 @@ class GranuleNode(INode):
         """
         return []
 
+
 class RemoteDirNode(INode):
-    
+
     def __init__(
         self,
         name: str,
@@ -63,12 +71,13 @@ class RemoteDirNode(INode):
 
     def _compute_children(self) -> tp.Iterator[INode]:
         # return list of GranuleNode and RemoteFolderNode
-        cat = TDSCatalog(self.name)
+        cat = TDSCatalog(self.info["name"])
         next_level = self.level + 1
 
         granules = [
-            GranuleNode(d.access_urls["HTTPServer"], {"name": name}, next_level)
-            for name, d in cat.datasets.items()]
+            GranuleNode(name, {"name": d.access_urls["HTTPServer"]}, next_level)
+            for name, d in cat.datasets.items()
+        ]
 
         # Each `catalog_refs` should have (name, ref), and it should be possible
         # to follow `ref` with `child = ref.follow()`. But there is a "name"
@@ -80,14 +89,12 @@ class RemoteDirNode(INode):
         #              dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/v1_0_1/Unsmoothed/
         #              cycle_001/catalog.xml
         catalog_refs = [
-            RemoteFolderNode(
-                ref,
-                {"name": "folder"},
-                self.level + 1)
-            for folder, ref in cat.catalog_refs.items():
+            RemoteDirNode(folder, {"name": ref.href}, next_level)
+            for folder, ref in cat.catalog_refs.items()
         ]
 
         return granules + catalog_refs
+
 
 def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     """Filter granules of a product in AVISO's Thredds Data Server.
@@ -119,10 +126,13 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
         str(Path(product_layout_conf.catalog_path) / "catalog.xml"),
     )
 
+    # Root node of the TDS
+    root_node = RemoteDirNode(product_layout_conf.catalog_path, {"name": tds_url}, 0)
+
     # Create the file discoverer for this TDS catalog
     file_discoverer = FileSystemMetadataCollector(
-        layouts=[product_layout_conf.layouts],
-        root_node=RemoteFolderNode(tds_url))
+        layouts=product_layout_conf.layouts, root_node=root_node
+    )
 
     filters = {**product_layout_conf.default_filters, **filters}
 
@@ -199,9 +209,7 @@ def _parse_tds_layout(product: AvisoProduct) -> ProductLayoutConfig:
 
         granule_discovery = tds_layout["granule_discovery"]
         data_type = product_layout["data_type"]
-        layouts_obj = _load_convention_layout(
-            granule_discovery, data_type
-        )
+        layouts_obj = _load_convention_layout(granule_discovery, data_type)
 
         if "filters" not in product_layout:
             product_layout["filters"] = {}
@@ -209,7 +217,7 @@ def _parse_tds_layout(product: AvisoProduct) -> ProductLayoutConfig:
         return ProductLayoutConfig(
             id=product.id,
             short_name=product_layout["short_name"],
-            layout=layouts_obj,
+            layouts=layouts_obj,
             catalog_path=product_layout["catalog_path"],
             default_filters=product_layout["filters"],
         )

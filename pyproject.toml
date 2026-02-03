@@ -13,7 +13,7 @@ dependencies = [
     "siphon",
     "typer",
     "rich",
-    "files-collections",
+    "files-collections>=1",
     "pyyaml",
     "pydantic"
 ]
