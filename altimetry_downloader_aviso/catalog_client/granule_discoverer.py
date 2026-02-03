@@ -64,7 +64,7 @@ class RemoteDirNode(INode):
 
     def children(self) -> tp.Iterable[INode]:
         # Cache children computation to avoid expensive relisting and ensure
-        # that one path on the filesystem will be represented by the same node
+        # that one path of the TDS tree will be represented by the same node
         if self._children is None:
             self._children = list(self._compute_children())
         return self._children
@@ -142,9 +142,7 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     return granules.filename
 
 
-def _load_convention_layout(
-    granule_discovery: dict, data_type: str
-) -> tuple[list[Layout]]:
+def _load_convention_layout(granule_discovery: dict, data_type: str) -> list[Layout]:
     """Load the fcollections convention and layout objects from a data type."""
     if data_type not in granule_discovery:
         msg = (
@@ -172,7 +170,7 @@ class ProductLayoutConfig:
         Unique identifier of the product layout.
     short_name: str
         Short name of the product (used as reference in CLI or metadata).
-    layouts: Layout
+    layouts: list[Layout]
         Layout structures used to organize the product files and directories. Contain
         semantic information for both folders and granules. Can be a list to handle TDS
         trees that mixes multiple structures.

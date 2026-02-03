@@ -83,4 +83,4 @@ granule_discovery:
   SWOT_L2_LR_SSH: BasicNetcdfFilesDatabaseSwotLRL2
   SWOT_L3_LR_SSH: BasicNetcdfFilesDatabaseSwotLRL3
   SWOT_L3_LR_WIND_WAVE: BasicNetcdfFilesDatabaseSwotLRWW
-  SWOT_L4: NetcdfFilesDatabaseGriddedSLA
+  SWOT_L4: BasicNetcdfFilesDatabaseGriddedSLA
