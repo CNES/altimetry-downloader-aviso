@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+0.3.0 (2026-02-04)
+------------------
+
+Handle breaking changes from bumping ``files-collections`` dependency to v1.0.0.
 
 0.2.2 (2026-01-07)
 ------------------
