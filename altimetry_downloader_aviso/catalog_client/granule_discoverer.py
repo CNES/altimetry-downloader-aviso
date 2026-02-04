@@ -78,7 +78,7 @@ class RemoteDirNode(INode):
             GranuleNode(name, {"name": d.access_urls["HTTPServer"]}, next_level)
             for name, d in cat.datasets.items()
         ]
-        logger.debug('%s has %d granule children', self.name, len(granules))
+        logger.debug("%s has %d granule children", self.name, len(granules))
 
         # Each `catalog_refs` should have (name, ref), and it should be possible
         # to follow `ref` with `child = ref.follow()`. But there is a "name"
@@ -93,7 +93,7 @@ class RemoteDirNode(INode):
             RemoteDirNode(folder, {"name": ref.href}, next_level)
             for folder, ref in cat.catalog_refs.items()
         ]
-        logger.debug('%s has %d non-granule children', self.name, len(catalog_refs))
+        logger.debug("%s has %d non-granule children", self.name, len(catalog_refs))
 
         return granules + catalog_refs
 
