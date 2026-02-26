@@ -7,10 +7,10 @@ A tool to easily search and download altimetry products from the Aviso catalog.
 - Both a command line interface and a Python interface
 
 
-## Quick start
+## Installation
 
 ```bash
-conda install -c conda-forge altimetry-downloader-aviso
+conda install altimetry-downloader-aviso -c conda-forge
 ```
 
 ## Use
@@ -98,7 +98,7 @@ Downloaded files (2) :
 ## Documentation
 
 📘 **Full documentation:**
-https://cnes.github.io/altimetry-downloader-aviso/index.html#
+https://cnes.github.io/altimetry-downloader-aviso/index.html
 
 Key pages:
 - [Installation](https://cnes.github.io/altimetry-downloader-aviso/getting_started/installation.html)
