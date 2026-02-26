@@ -98,13 +98,13 @@ Downloaded files (2) :
 ## Documentation
 
 📘 **Full documentation:**
-https://robin-cls.github.io/aviso/index.html#
+https://cnes.github.io/altimetry-downloader-aviso/index.html#
 
 Key pages:
-- [Installation](https://robin-cls.github.io/aviso/getting_started/installation.html)
-- [Command line interface](https://robin-cls.github.io/aviso/getting_started/command_line_interface.html)
-- [Python interface](https://robin-cls.github.io/aviso/getting_started/python_interface.html)
-- [Changelog](https://robin-cls.github.io/aviso/changelog.html)
+- [Installation](https://cnes.github.io/altimetry-downloader-aviso/getting_started/installation.html)
+- [Command line interface](https://cnes.github.io/altimetry-downloader-aviso/getting_started/command_line_interface.html)
+- [Python interface](https://cnes.github.io/altimetry-downloader-aviso/getting_started/python_interface.html)
+- [Changelog](https://cnes.github.io/altimetry-downloader-aviso/changelog.html)
 
 
 ## License
