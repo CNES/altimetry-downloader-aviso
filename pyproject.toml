@@ -60,10 +60,10 @@ doc = ["sphinx<9", "sphinx-autodoc-typehints", "sphinx-book-theme", "sphinx-desi
 local_scheme = "no-local-version"
 
 [project.urls]
-Homepage = "https://github.com/robin-cls/aviso"
-Documentation = "https://robin-cls.github.io/aviso/"
-Repository = "https://github.com/robin-cls/aviso"
-Issues = "https://github.com/robin-cls/aviso/issues"
+Homepage = "https://github.com/CNES/altimetry-downloader-aviso"
+Documentation = "https://cnes.github.io/altimetry-downloader-aviso/"
+Repository = "https://github.com/CNES/altimetry-downloader-aviso"
+Issues = "https://github.com/CNES/altimetry-downloader-aviso/issues"
 
 [tool.coverage.report]
 exclude_also = [
