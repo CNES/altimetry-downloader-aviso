@@ -74,8 +74,8 @@ products:
     filters:
       subset: Extended
 
-  96d932e6-07d0-447f-858a-90ff1ce53087:
-    short_name: L4_exp_with_SWOT
+  a57da16f-330a-4927-b532-ca013b6c83da:
+    short_name: L4_with_SWOT
     data_type: SWOT_L4
     catalog_path: dataset-duacs-experimental-dt-phy-grids-nadirs-and-wide-swath
 

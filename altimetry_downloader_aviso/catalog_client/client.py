@@ -103,7 +103,7 @@ def _request_catalog() -> dict:
         builder.must_match(Field.DATA_CENTER, "CDS-AVISO")
         .must_match(Field.PLATFORMS, "SWOT")
         .must_not_term(Field.ID, "94cd8b08-bf24-4f59-8ce5-bc27c6bd9c17")
-        .must_not_term(Field.ID, "a57da16f-330a-4927-b532-ca013b6c83da")
+        .must_not_term(Field.ID, "96d932e6-07d0-447f-858a-90ff1ce53087")
         .build()
     )
 

@@ -217,7 +217,7 @@ def _parse_tds_layout(product: AvisoProduct) -> ProductLayoutConfig:
 
         return ProductLayoutConfig(
             id=product.id,
-            short_name=product_layout["short_name"],
+            short_name=product.short_name,
             layouts=layouts_obj,
             catalog_path=product_layout["catalog_path"],
             default_filters=product_layout["filters"],

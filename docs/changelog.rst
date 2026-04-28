@@ -1,6 +1,12 @@
 Release Notes
 =============
 
+0.3.2 (2026-04-28)
+------------------
+
+The 3.0 version of the "Multimission Gridded (with SWOT, MIOST only) Level-4 Sea Surface Heights and Velocities" product has been added to the list of supported products.
+
+
 0.3.1 (2026-03-06)
 ------------------
 

@@ -174,7 +174,7 @@ def test_load_convention_layout(patch_some, test_layouts):
     [("productA", "sample_product_a", "A"), ("productB", "sample_product_b", "B")],
 )
 def test_parse_tds_layout(patch_some, test_layouts, _id, short_name, path_filter):
-    pl_conf = _parse_tds_layout(AvisoProduct(id=_id))
+    pl_conf = _parse_tds_layout(AvisoProduct(id=_id, short_name=short_name))
     assert isinstance(pl_conf, ProductLayoutConfig)
 
     assert pl_conf.id == _id
