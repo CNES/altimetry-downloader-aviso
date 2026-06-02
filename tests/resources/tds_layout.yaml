@@ -4,15 +4,13 @@ products:
     short_name: sample_product_a
     data_type: TEST_TYPE
     catalog_path: productA_path
-    filters:
-      path_filter: A
 
   productB:
     short_name: sample_product_b
     data_type: TEST_TYPE
     catalog_path: productB_path
     filters:
-      path_filter: B
+      cycle_number: 4
 
   productC:
     short_name: sample_product_c

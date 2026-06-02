@@ -11,7 +11,6 @@ import yaml
 from fcollections.core import (
     FileNode,
     FilesDatabase,
-    FileSystemMetadataCollector,
     INode,
     LayoutVisitor,
     VisitResult,
@@ -107,7 +106,8 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     product
         the aviso product
     **filters
-        filters for files selection
+        filters for files selection. Unknown filters for the requested product will be
+        ignored.
 
     Returns
     -------
@@ -123,8 +123,15 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     # Get TDS product layout
     product_layout_conf = _parse_tds_layout(product)
 
-    filters = {**product_layout_conf.default_filters, **filters}
     instance = _load_product_handler(product_layout_conf)
+
+    # Allow unknown filters for this method to add flexibility for the multiple products
+    # handled in the AVISO downloader. We just ignore them instead of raising an error
+    # (raising an error is the default behavior in the files listing)
+    filters = {**product_layout_conf.default_filters, **filters}
+    unknown_fiters = set(filters) - set(instance.listing_parameters)
+    filters = {k: v for k, v in filters.items() if k not in unknown_fiters}
+    logger.debug("Removed unknown filters %s", unknown_fiters)
 
     granules = instance.list_files(**filters)
 
@@ -149,11 +156,8 @@ def _load_product_handler(product_config: ProductLayoutConfig) -> FilesDatabase:
     product_handler = product_config.product_handler
     instance = product_handler(product_config.catalog_path, fs=Mock())
 
-    # Create the file metadata collector for this TDS catalog.
-    # Override the default discoverer to use a collector working with TDS URLs instead
-    instance.discoverer = FileSystemMetadataCollector(
-        layouts=product_handler.layouts, root_node=root_node
-    )
+    # Override the root node using the custom node of this TDS catalog.
+    instance.discoverer.root_node = root_node
 
     return instance
 

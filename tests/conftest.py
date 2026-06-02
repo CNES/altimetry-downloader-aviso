@@ -1,6 +1,7 @@
 import json
 import re
 from pathlib import Path
+from unittest.mock import Mock
 
 import fcollections.implementations
 import pytest
@@ -15,6 +16,7 @@ from fcollections.core import (
 from requests.exceptions import ProxyError
 
 import altimetry_downloader_aviso.auth
+from altimetry_downloader_aviso.catalog_client.granule_discoverer import RemoteDirNode
 
 # PATCH GEONETWORK CATALOG RESPONSES
 
@@ -103,36 +105,16 @@ class FileNameConventionTest(FileNameConvention):
 
     def __init__(self):
         super().__init__(
-            regex=re.compile(r"dataset_(?P<pass_number>\d{2}).nc"),
-            fields=[FileNameFieldInteger("pass_number")],
-            generation_string="dataset_{pass_number:0>2d}.nc",
+            regex=re.compile(
+                r"dataset_(?P<cycle_number>\d{2})_(?P<pass_number>\d{2}).nc"
+            ),
+            fields=[
+                FileNameFieldInteger("cycle_number"),
+                FileNameFieldInteger("pass_number"),
+            ],
+            generation_string="dataset_{cycle_number:0>2d}_{pass_number:0>2d}.nc",
         )
 
-
-TEST_LAYOUT_OLD = Layout(
-    [
-        FileNameConvention(
-            re.compile("product(?P<filter1>.*)_path"),
-            [FileNameFieldString("filter1")],
-            "product{filter1!f}_path",
-        ),
-        FileNameConvention(
-            re.compile("(?P<filter2>.*)_filter"),
-            [FileNameFieldInteger("filter2")],
-            "{filter2!f}_filter",
-        ),
-    ]
-)
-
-TEST_PRODUCT_LAYOUT_OLD = Layout(
-    [
-        FileNameConvention(
-            re.compile("(?P<filter2>.*)_filter"),
-            [FileNameFieldInteger("filter2")],
-            "{filter2!f}_filter",
-        )
-    ]
-)
 
 TEST_LAYOUT = Layout(
     [
@@ -172,8 +154,32 @@ class MyDatabase2(FilesDatabase):
 
 
 @pytest.fixture
-def test_layouts() -> list[Layout]:
-    return MyDatabase2.layouts
+def product_handler_cls() -> type[FilesDatabase]:
+    return MyDatabase
+
+
+@pytest.fixture(scope="session")
+def product_handler() -> FilesDatabase:
+    root_node = RemoteDirNode("root", {"name": "https://tds.mock/catalog.xml"}, 0)
+    instance = MyDatabase2("root", fs=Mock())
+    instance.discoverer.root_node = root_node
+    return instance
+
+
+@pytest.fixture(scope="session")
+def product_handler_bad() -> FilesDatabase:
+    root_node = RemoteDirNode("root", {"name": "https://bad_url/catalog.xml"}, 0)
+    instance = MyDatabase2("root", fs=Mock())
+    instance.discoverer.root_node = root_node
+    return instance
+
+
+@pytest.fixture(scope="session")
+def product_handler_no_layouts() -> FilesDatabase:
+    root_node = RemoteDirNode("root", {"name": "https://tds.mock/catalog.xml"}, 0)
+    instance = MyDatabase2("root", fs=Mock(), enable_layouts=False)
+    instance.discoverer.root_node = root_node
+    return instance
 
 
 @pytest.fixture
@@ -181,14 +187,10 @@ def test_product_layout():
     return TEST_PRODUCT_LAYOUT
 
 
-@pytest.fixture
-def patch_some(mocker):
-    mocker.patch("fcollections.implementations.MyDatabase", MyDatabase2)
-
-
 @pytest.fixture(autouse=True)
 def patch_all(mocker):
     setattr(fcollections.implementations, "MyDatabase", MyDatabase)
+    setattr(fcollections.implementations, "MyDatabase2", MyDatabase2)
 
     mocker.patch(
         (
@@ -216,30 +218,30 @@ def mock_tds_catalog(mocker):
 
     Testing tree structure:
     / -> https://tds.mock/catalog.xml
-    - dataset_01.nc
+    - dataset_03_01.nc
     /productA_path/ -> https://tds.mock/productA_path/catalog.xml
         /cycle_02/  -> https://tds.mock/productA_path/cycle_02/catalog.xml
-            - dataset_02.nc
-            - dataset_22.nc
+            - dataset_02_02.nc
+            - dataset_02_22.nc
         /cycle_03/  -> https://tds.mock/productA_path/cycle_03/catalog.xml
-            - dataset_03.nc
-            - dataset_33.nc
+            - dataset_03_03.nc
+            - dataset_03_33.nc
     /productB_path/ -> https://tds.mock/productB_path/catalog.xml
         /cycle_04/  -> https://tds.mock/productB_path/cycle_04/catalog.xml
-        - dataset_04.nc
-        - dataset_44.nc
+        - dataset_04_04.nc
+        - dataset_04_44.nc
     """
 
-    def _get_dataset(path: str, nb: str):
+    def _get_dataset(path: str, nc: str, nb: str):
         mock_dataset = mocker.Mock()
         mock_dataset.access_urls = {
-            "HTTPServer": f"https://tds.mock{path}/dataset_{nb:0>2d}.nc"
+            "HTTPServer": f"https://tds.mock{path}/dataset_{nc:0>2d}_{nb:0>2d}.nc"
         }
         return mock_dataset
 
     mock_catalog_vA_2 = mocker.Mock()
     mock_catalog_vA_2.datasets = {
-        f"dataset_{nb:0>2d}.nc": _get_dataset("/productA_path/cycle_02", nb)
+        f"dataset_02_{nb:0>2d}.nc": _get_dataset("/productA_path/cycle_02", 2, nb)
         for nb in [2, 22]
     }
     mock_catalog_vA_2.catalog_refs = {}
@@ -249,7 +251,7 @@ def mock_tds_catalog(mocker):
 
     mock_catalog_vA_3 = mocker.Mock()
     mock_catalog_vA_3.datasets = {
-        f"dataset_{nb:0>2d}.nc": _get_dataset("/productA_path/cycle_03", nb)
+        f"dataset_03_{nb:0>2d}.nc": _get_dataset("/productA_path/cycle_03", 3, nb)
         for nb in [3, 33]
     }
     mock_catalog_vA_3.catalog_refs = {}
@@ -259,7 +261,7 @@ def mock_tds_catalog(mocker):
 
     mock_catalog_vB_4 = mocker.Mock()
     mock_catalog_vB_4.datasets = {
-        f"dataset_{nb:0>2d}.nc": _get_dataset("/productB_path/cycle_04", nb)
+        f"dataset_04_{nb:0>2d}.nc": _get_dataset("/productB_path/cycle_04", 4, nb)
         for nb in [4, 44]
     }
     mock_catalog_vB_4.catalog_refs = {}
@@ -289,9 +291,7 @@ def mock_tds_catalog(mocker):
     def tds_catalog_side_effect(url):
         if url == "https://tds.mock/catalog.xml":
             mock_root = mocker.Mock()
-            mock_root.datasets = {
-                f"dataset_{nb:0>2d}.nc": _get_dataset("", nb) for nb in [1]
-            }
+            mock_root.datasets = {}
             mock_root.catalog_refs = {
                 "productA_path": mock_ref_vA,
                 "productB_path": mock_ref_vB,

@@ -69,7 +69,8 @@ def search_granules(product_short_name: str, **filters) -> list[str]:
     product_short_name: str
         the short name of the product
     **filters
-        filters for files selection
+        filters for files selection. Unknown filters for the requested product will be
+        ignored.
 
     Returns
     -------
