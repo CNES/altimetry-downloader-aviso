@@ -8,7 +8,7 @@ from altimetry_downloader_aviso.catalog_client.geonetwork.models.model import (
 from altimetry_downloader_aviso.catalog_client.granule_discoverer import (
     ProductLayoutConfig,
     RemoteDirNode,
-    _load_convention_layout,
+    _import_product_handler,
     _parse_tds_layout,
     filter_granules,
 )
@@ -163,9 +163,9 @@ def test_load_convention_layout(patch_some, test_layouts):
         match="The data type BAD_TYPE is missing from the "
         "tds_layout|granule_discovery configuration.",
     ):
-        _load_convention_layout(conf, "BAD_TYPE")
+        _import_product_handler(conf, "BAD_TYPE")
 
-    layouts = _load_convention_layout(conf, "TEST_TYPE")
+    layouts = _import_product_handler(conf, "TEST_TYPE")
     assert layouts == test_layouts
 
 
