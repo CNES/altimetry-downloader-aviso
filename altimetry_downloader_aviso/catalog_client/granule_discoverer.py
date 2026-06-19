@@ -25,6 +25,11 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore", category=ImportWarning)
     import fcollections.implementations
 
+if tp.TYPE_CHECKING:
+    from fcollections.time import Period
+
+    HalfOrbitRange = tuple[int, int], tuple[int, int]
+
 logger = logging.getLogger(__name__)
 
 TDS_CATALOG_BASE_URL = "https://tds-odatis.aviso.altimetry.fr/thredds/catalog/"
@@ -138,18 +143,45 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     return granules.filename
 
 
-def filter_infos(product: AvisoProduct) -> list[str]:
+def filter_infos(
+    product: AvisoProduct,
+) -> (
+    tuple[
+        dict[fcollections.implementations.SwotPhases, Period],
+        dict[fcollections.implementations.SwotPhases, HalfOrbitRange],
+        set[str] | None,
+    ]
+    | tuple[Period, HalfOrbitRange, set[str]]
+):
+    """Get temporal coverage, half orbit range and versions available for a
+    given product.
+
+    The temporal coeverage and half orbit range are returned as dictionaries for each
+    Swot phases in case. This will allow
+
+    Parameters
+    ----------
+    product
+        the aviso product.
+
+    Returns
+    -------
+    tuple[
+        dict[SwotPhases, Period] | Period,
+        dict[SwotPhases, HalfOrbitRange] | HalfOrbitRange | None,
+        set[str] | None]
+        The temporal coverage, half orbit range (if the product has half orbits) and
+        versions available (if the product has multiple versions).
+    """
     # Get TDS product layout
     product_layout_conf = _parse_tds_layout(product)
 
     instance = _load_product_handler(product_layout_conf)
 
-    from fcollections.implementations import SwotPhases
-
     temporal_coverage = {}
     half_orbit_range = {}
     try:
-        for phase in SwotPhases:
+        for phase in fcollections.implementations.SwotPhases:
             half_orbit_range[phase.name] = instance.half_orbit_range(
                 **product_layout_conf.default_filters, phase=phase
             )

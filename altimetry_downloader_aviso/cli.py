@@ -9,7 +9,11 @@ from rich.panel import Panel
 from rich.table import Table
 
 import altimetry_downloader_aviso.core as ac_core
-from altimetry_downloader_aviso.catalog_client.client import InvalidProductError
+from altimetry_downloader_aviso.catalog_client.client import (
+    InvalidProductError,
+    get_product_from_short_name,
+)
+from altimetry_downloader_aviso.catalog_client.granule_discoverer import filter_infos
 
 logging.basicConfig(
     level=logging.WARNING, handlers=[RichHandler()], format="%(message)s"
@@ -81,18 +85,17 @@ def help_query(
         help="Enable verbose logging",
     ),
 ):
+    """Provides information about possible values for the 'get' command.
+
+    To get product's short name, use 'summary' command.
+    """
     _setup_logging(quiet=quiet, verbose=verbose)
 
-    from altimetry_downloader_aviso.catalog_client.client import (
-        _get_product_from_short_name,
-    )
-    from altimetry_downloader_aviso.catalog_client.granule_discoverer import (
-        filter_infos,
-    )
-
-    product = _get_product_from_short_name(product)
+    product = get_product_from_short_name(product)
     temporal_coverage, half_orbit_range, versions = filter_infos(product)
 
+    # Sort version and underline the last element to hint that this is the current
+    # version that is automatically selected for download.
     versions = sorted(versions)
     versions = [str(version) for version in versions[:-1]] + [
         f"[underline]{versions[-1]}[/underline]",
@@ -102,6 +105,7 @@ def help_query(
     table = Table(title="Dataset Information")
 
     if half_orbit_range is not None:
+        # Product under the Swath (half orbit is a relevant concept)
         table.add_column("Phase", style="cyan")
         table.add_column("Property", style="cyan")
         table.add_column("Value", style="green")
@@ -124,6 +128,7 @@ def help_query(
 
         table.add_row("All", "Versions", version, "--version")
     else:
+        # Temporal series (no half orbits)
         table.add_column("Property", style="cyan")
         table.add_column("Value", style="green")
         table.add_column("[bold]get[/bold] parameters")

@@ -6,11 +6,11 @@ import requests
 
 from altimetry_downloader_aviso.catalog_client.client import (
     InvalidProductError,
-    _get_product_from_short_name,
     _request_catalog,
     _request_product,
     fetch_catalog,
     get_details,
+    get_product_from_short_name,
     search_granules,
 )
 from altimetry_downloader_aviso.catalog_client.geonetwork.models.model import (
@@ -110,7 +110,7 @@ def test_get_details():
     [("sample_product_a", "productA"), ("sample_product_b", "productB")],
 )
 def test_get_product_from_short_name(short_name, id):
-    product = _get_product_from_short_name(short_name)
+    product = get_product_from_short_name(short_name)
 
     assert product.id == id
     assert product.short_name == short_name
@@ -120,7 +120,7 @@ def test_get_product_from_short_name(short_name, id):
 
 def test_get_product_from_short_name_error():
     with pytest.raises(InvalidProductError):
-        _get_product_from_short_name("bad_short_name")
+        get_product_from_short_name("bad_short_name")
 
 
 @pytest.mark.parametrize(

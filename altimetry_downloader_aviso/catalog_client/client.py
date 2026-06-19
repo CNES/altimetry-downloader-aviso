@@ -55,7 +55,7 @@ def get_details(product_short_name: str) -> AvisoProduct:
     RuntimeError
         In case an exception happens when requesting catalog
     """
-    product = _get_product_from_short_name(product_short_name)
+    product = get_product_from_short_name(product_short_name)
     logger.info("Requesting '%s' product from Aviso's catalog...", product_short_name)
     resp = _request_product(product.id)
     product = parse_product_response(resp, product)
@@ -82,11 +82,11 @@ def search_granules(product_short_name: str, **filters) -> list[str]:
     InvalidProductError
         In case the product short name doesn't correspond to any product
     """
-    product = _get_product_from_short_name(product_short_name)
+    product = get_product_from_short_name(product_short_name)
     return filter_granules(product, **filters)
 
 
-def _get_product_from_short_name(product_short_name: str) -> AvisoProduct:
+def get_product_from_short_name(product_short_name: str) -> AvisoProduct:
     """Search for a product in AVISO's catalog from its short name."""
     catalog = fetch_catalog()
     for p in catalog.products:
