@@ -130,10 +130,10 @@ def test_get_product_from_short_name_error():
             "sample_product_a",
             {},
             [
-                "https://tds.mock/productA_path/cycle_02/dataset_02.nc",
-                "https://tds.mock/productA_path/cycle_02/dataset_22.nc",
-                "https://tds.mock/productA_path/cycle_03/dataset_03.nc",
-                "https://tds.mock/productA_path/cycle_03/dataset_33.nc",
+                "https://tds.mock/productA_path/cycle_02/dataset_02_02.nc",
+                "https://tds.mock/productA_path/cycle_02/dataset_02_22.nc",
+                "https://tds.mock/productA_path/cycle_03/dataset_03_03.nc",
+                "https://tds.mock/productA_path/cycle_03/dataset_03_33.nc",
             ],
         ),
         (
@@ -142,8 +142,8 @@ def test_get_product_from_short_name_error():
                 "cycle_number": 2,
             },
             [
-                "https://tds.mock/productA_path/cycle_02/dataset_02.nc",
-                "https://tds.mock/productA_path/cycle_02/dataset_22.nc",
+                "https://tds.mock/productA_path/cycle_02/dataset_02_02.nc",
+                "https://tds.mock/productA_path/cycle_02/dataset_02_22.nc",
             ],
         ),
         (
@@ -151,22 +151,22 @@ def test_get_product_from_short_name_error():
             {
                 "pass_number": 3,
             },
-            ["https://tds.mock/productA_path/cycle_03/dataset_03.nc"],
+            ["https://tds.mock/productA_path/cycle_03/dataset_03_03.nc"],
         ),
         (
             "sample_product_b",
             {},
             [
-                "https://tds.mock/productB_path/cycle_04/dataset_04.nc",
-                "https://tds.mock/productB_path/cycle_04/dataset_44.nc",
+                "https://tds.mock/productB_path/cycle_04/dataset_04_04.nc",
+                "https://tds.mock/productB_path/cycle_04/dataset_04_44.nc",
             ],
         ),
         (
             "sample_product_b",
             {"other_filter": "bad"},
             [
-                "https://tds.mock/productB_path/cycle_04/dataset_04.nc",
-                "https://tds.mock/productB_path/cycle_04/dataset_44.nc",
+                "https://tds.mock/productB_path/cycle_04/dataset_04_04.nc",
+                "https://tds.mock/productB_path/cycle_04/dataset_04_44.nc",
             ],
         ),
     ],

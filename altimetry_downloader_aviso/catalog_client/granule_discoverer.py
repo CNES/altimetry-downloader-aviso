@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import typing as tp
 import warnings
@@ -9,9 +11,7 @@ import yaml
 from fcollections.core import (
     FileNode,
     FilesDatabase,
-    FileSystemMetadataCollector,
     INode,
-    Layout,
     LayoutVisitor,
     VisitResult,
 )
@@ -106,7 +106,8 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     product
         the aviso product
     **filters
-        filters for files selection
+        filters for files selection. Unknown filters for the requested product will be
+        ignored.
 
     Returns
     -------
@@ -122,29 +123,48 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     # Get TDS product layout
     product_layout_conf = _parse_tds_layout(product)
 
-    # Build TDS catalog URL
-    tds_url = urljoin(
-        TDS_CATALOG_BASE_URL,
-        str(Path(product_layout_conf.catalog_path) / "catalog.xml"),
-    )
+    instance = _load_product_handler(product_layout_conf)
 
-    # Root node of the TDS. The node name (not the URL) should be given as an argument,
-    # whereas the URL is given in the additional information
-    root_node = RemoteDirNode(product_layout_conf.catalog_path, {"name": tds_url}, 0)
-
-    # Create the file metadata collector for this TDS catalog
-    file_discoverer = FileSystemMetadataCollector(
-        layouts=product_layout_conf.layouts, root_node=root_node
-    )
-
+    # Allow unknown filters for this method to add flexibility for the multiple products
+    # handled in the AVISO downloader. We just ignore them instead of raising an error
+    # (raising an error is the default behavior in the files listing)
     filters = {**product_layout_conf.default_filters, **filters}
+    unknown_fiters = set(filters) - set(instance.listing_parameters)
+    filters = {k: v for k, v in filters.items() if k not in unknown_fiters}
+    logger.debug("Removed unknown filters %s", unknown_fiters)
 
-    granules = file_discoverer.to_dataframe(**filters)
+    granules = instance.list_files(**filters)
 
     return granules.filename
 
 
-def _load_convention_layout(granule_discovery: dict, data_type: str) -> list[Layout]:
+def _load_product_handler(product_config: ProductLayoutConfig) -> FilesDatabase:
+    # Build TDS catalog URL
+    tds_url = urljoin(
+        TDS_CATALOG_BASE_URL,
+        str(Path(product_config.catalog_path) / "catalog.xml"),
+    )
+
+    # Root node of the TDS. The node name (not the URL) should be given as an argument,
+    # whereas the URL is given in the additional information
+    root_node = RemoteDirNode(product_config.catalog_path, {"name": tds_url}, 0)
+
+    # Create the product handler instance. Use a fs.Mock to bypass catalog path exist
+    # check in the file system.
+    from unittest.mock import Mock
+
+    product_handler = product_config.product_handler
+    instance = product_handler(product_config.catalog_path, fs=Mock())
+
+    # Override the root node using the custom node of this TDS catalog.
+    instance.discoverer.root_node = root_node
+
+    return instance
+
+
+def _import_product_handler(
+    granule_discovery: dict, data_type: str
+) -> type[FilesDatabase]:
     """Load the fcollections convention and layout objects from a data type."""
     if data_type not in granule_discovery:
         msg = (
@@ -157,7 +177,7 @@ def _load_convention_layout(granule_discovery: dict, data_type: str) -> list[Lay
     files_database_cls: FilesDatabase = getattr(
         fcollections.implementations, files_database_cls_name
     )
-    return files_database_cls.layouts
+    return files_database_cls
 
 
 @dataclass
@@ -172,10 +192,10 @@ class ProductLayoutConfig:
         Unique identifier of the product layout.
     short_name: str
         Short name of the product (used as reference in CLI or metadata).
-    layouts: list[Layout]
+    product_handler: type[FilesDatabase]
+        Product handler class used to list the product files. It notably contains the
         Layout structures used to organize the product files and directories. Contain
-        semantic information for both folders and granules. Can be a list to handle TDS
-        trees that mixes multiple structures.
+        semantic information for both folders and granules.
     catalog_path: str
         Relative or absolute path to the product catalog location.
     default_filters: dict
@@ -184,7 +204,7 @@ class ProductLayoutConfig:
 
     id: str
     short_name: str
-    layouts: list[Layout]
+    product_handler: type[FilesDatabase]
     catalog_path: str
     default_filters: dict
 
@@ -210,7 +230,7 @@ def _parse_tds_layout(product: AvisoProduct) -> ProductLayoutConfig:
 
         granule_discovery = tds_layout["granule_discovery"]
         data_type = product_layout["data_type"]
-        layouts_obj = _load_convention_layout(granule_discovery, data_type)
+        product_handler = _import_product_handler(granule_discovery, data_type)
 
         if "filters" not in product_layout:
             product_layout["filters"] = {}
@@ -218,7 +238,7 @@ def _parse_tds_layout(product: AvisoProduct) -> ProductLayoutConfig:
         return ProductLayoutConfig(
             id=product.id,
             short_name=product.short_name,
-            layouts=layouts_obj,
+            product_handler=product_handler,
             catalog_path=product_layout["catalog_path"],
             default_filters=product_layout["filters"],
         )

@@ -42,22 +42,32 @@ def test_details():
         (
             "sample_product_a",
             {},
-            ["dataset_02.nc", "dataset_22.nc", "dataset_03.nc", "dataset_33.nc"],
+            [
+                "dataset_02_02.nc",
+                "dataset_02_22.nc",
+                "dataset_03_03.nc",
+                "dataset_03_33.nc",
+            ],
         ),
         (
             "sample_product_a",
             {
                 "cycle_number": 2,
             },
-            ["dataset_02.nc", "dataset_22.nc"],
+            ["dataset_02_02.nc", "dataset_02_22.nc"],
         ),
-        ("sample_product_a", {"pass_number": 3}, ["dataset_03.nc"]),
+        ("sample_product_a", {"pass_number": 3}, ["dataset_03_03.nc"]),
         (
             "sample_product_a",
             {"time": ("2025-04-04", "2025-04-05"), "version": "2.1.1"},
-            ["dataset_02.nc", "dataset_22.nc", "dataset_03.nc", "dataset_33.nc"],
+            [
+                "dataset_02_02.nc",
+                "dataset_02_22.nc",
+                "dataset_03_03.nc",
+                "dataset_03_33.nc",
+            ],
         ),
-        ("sample_product_b", {}, ["dataset_04.nc", "dataset_44.nc"]),
+        ("sample_product_b", {}, ["dataset_04_04.nc", "dataset_04_44.nc"]),
     ],
 )
 def test_get(tmp_path, short_name, filters, files):
@@ -69,12 +79,12 @@ def test_get(tmp_path, short_name, filters, files):
 def test_get_overwrite(tmp_path):
     short_name = "sample_product_a"
     filters = {"cycle_number": 2, "overwrite": False}
-    files2 = ["dataset_02.nc", "dataset_22.nc"]
+    files2 = ["dataset_02_02.nc", "dataset_02_22.nc"]
     local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)
     assert local_files == [os.path.join(tmp_path, f) for f in files2]
 
     filters = {"cycle_number": [2, 3], "overwrite": False}
-    files3 = ["dataset_03.nc", "dataset_33.nc"]
+    files3 = ["dataset_03_03.nc", "dataset_03_33.nc"]
     local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)
     assert local_files == [os.path.join(tmp_path, f) for f in files2 + files3]
 
