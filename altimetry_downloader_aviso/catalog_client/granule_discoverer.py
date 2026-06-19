@@ -138,6 +138,48 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     return granules.filename
 
 
+def filter_infos(product: AvisoProduct) -> list[str]:
+    # Get TDS product layout
+    product_layout_conf = _parse_tds_layout(product)
+
+    instance = _load_product_handler(product_layout_conf)
+
+    from fcollections.implementations import SwotPhases
+
+    temporal_coverage = {}
+    half_orbit_range = {}
+    try:
+        for phase in SwotPhases:
+            half_orbit_range[phase.name] = instance.half_orbit_range(
+                **product_layout_conf.default_filters, phase=phase
+            )
+            temporal_coverage[phase.name] = instance.time_coverage(
+                **product_layout_conf.default_filters, phase=phase
+            )
+    except AttributeError:
+        half_orbit_range = None
+        temporal_coverage = instance.time_coverage(
+            **product_layout_conf.default_filters
+        )
+
+    try:
+        subsets = instance.subsets
+        if len(subsets) == 0 or "version" not in instance.unmixer.keys:
+            versions = instance.filter_values(
+                "version", **product_layout_conf.default_filters
+            )
+        else:
+            versions = {
+                s["version"]
+                for s in instance.subsets
+                if s["subset"].name == product_layout_conf.default_filters["subset"]
+            }
+    except ValueError:
+        versions = None
+
+    return temporal_coverage, half_orbit_range, versions
+
+
 def _load_product_handler(product_config: ProductLayoutConfig) -> FilesDatabase:
     # Build TDS catalog URL
     tds_url = urljoin(

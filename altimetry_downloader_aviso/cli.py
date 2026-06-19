@@ -66,6 +66,80 @@ def summary(
 
 
 @app.command()
+def help_query(
+    product: str = typer.Argument(..., help="Product's short name"),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="No logging",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose logging",
+    ),
+):
+    _setup_logging(quiet=quiet, verbose=verbose)
+
+    from altimetry_downloader_aviso.catalog_client.client import (
+        _get_product_from_short_name,
+    )
+    from altimetry_downloader_aviso.catalog_client.granule_discoverer import (
+        filter_infos,
+    )
+
+    product = _get_product_from_short_name(product)
+    temporal_coverage, half_orbit_range, versions = filter_infos(product)
+
+    versions = sorted(versions)
+    versions = [str(version) for version in versions[:-1]] + [
+        f"[underline]{versions[-1]}[/underline]",
+    ]
+    version = ", ".join(versions)
+
+    table = Table(title="Dataset Information")
+
+    if half_orbit_range is not None:
+        table.add_column("Phase", style="cyan")
+        table.add_column("Property", style="cyan")
+        table.add_column("Value", style="green")
+        table.add_column("[bold]get[/bold] parameters")
+
+        for phase in temporal_coverage.keys():
+            table.add_row(
+                phase,
+                "Temporal Coverage",
+                str(temporal_coverage[phase]),
+                "--start, --end",
+            )
+            table.add_row(
+                "",
+                "Half Orbit Range",
+                str(half_orbit_range[phase]),
+                "--cycle, --pass",
+                end_section=True,
+            )
+
+        table.add_row("All", "Versions", version, "--version")
+    else:
+        table.add_column("Property", style="cyan")
+        table.add_column("Value", style="green")
+        table.add_column("[bold]get[/bold] parameters")
+
+        table.add_row(
+            "Temporal Coverage",
+            str(temporal_coverage),
+            "--start, --end",
+            end_section=True,
+        )
+        table.add_row("Versions", version, "--version")
+
+    console.print(table)
+
+
+@app.command()
 def details(
     product: str = typer.Argument(..., help="Product's short name"),
     quiet: bool = typer.Option(
