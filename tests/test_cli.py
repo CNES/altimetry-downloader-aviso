@@ -1,7 +1,9 @@
+import datetime as dt
 import logging
 
 import numpy as np
 import pytest
+from fcollections.time import Period
 from typer import BadParameter
 from typer.testing import CliRunner
 
@@ -256,3 +258,56 @@ def test_get_bad_product(tmp_path):
     assert (
         "Invalid value: 'bad_product' doesn't " "exist in Aviso catalog."
     ) in result.output
+
+
+@pytest.mark.parametrize(
+    "filter_infos, additional",
+    [
+        (
+            (
+                {"CALVAL": Period(dt.datetime(2024, 1, 1), dt.datetime(2024, 2, 7))},
+                {"CALVAL": ((1, 10), (3, 7))},
+                {"v1", "v2"},
+            ),
+            [
+                "CALVAL",
+                "Half Orbit Range",
+                "((1, 10), (3, 7))",
+                "--cycle, --pass",
+            ],
+        ),
+        (
+            (
+                Period(dt.datetime(2024, 1, 1), dt.datetime(2024, 2, 7)),
+                None,
+                {"v1", "v2"},
+            ),
+            [],
+        ),
+    ],
+    ids=["half_orbits", "time_series"],
+)
+def test_help_query(mocker, filter_infos, additional):
+    mocker.patch("altimetry_downloader_aviso.cli.get_product_from_short_name")
+    mocker.patch(
+        "altimetry_downloader_aviso.cli.filter_infos", return_value=filter_infos
+    )
+    result = runner.invoke(
+        app,
+        [
+            "help-query",
+            "MY_PRODUCT",
+        ],
+        env={"COLUMNS": "100"},
+    )
+    assert result.exit_code == 0
+    expected = [
+        "Temporal Coverage",
+        "2024-01-01 00:00:00",
+        "2024-02-07 00:00:00",
+        "--start, --end",
+        "Version",
+        "v1, v2",
+        "--version",
+    ] + additional
+    assert all([x in result.output for x in expected])
