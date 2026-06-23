@@ -1,4 +1,7 @@
+import datetime as dt
+
 import pytest
+from fcollections.time import Period
 from requests.exceptions import ProxyError
 
 from altimetry_downloader_aviso.catalog_client.geonetwork.models.model import (
@@ -9,6 +12,7 @@ from altimetry_downloader_aviso.catalog_client.granule_discoverer import (
     _import_product_handler,
     _parse_tds_layout,
     filter_granules,
+    filter_infos,
 )
 
 
@@ -113,6 +117,45 @@ def test_filter_granules():
     ]
     urls = filter_granules(AvisoProduct(id="productA"), pass_number=3)
     assert list(urls) == ["https://tds.mock/productA_path/cycle_03/dataset_03_03.nc"]
+
+
+@pytest.mark.parametrize(
+    "product, expected_time_coverage, expected_half_orbit_range, expected_versions",
+    [
+        (
+            "productA",
+            Period(dt.datetime(2025, 1, 1), dt.datetime(2025, 1, 8)),
+            None,
+            None,
+        ),
+        (
+            "productC",
+            {
+                "SCIENCE": Period(dt.datetime(2025, 1, 1), dt.datetime(2025, 1, 8)),
+                "CALVAL": Period(dt.datetime(2025, 1, 1), dt.datetime(2025, 1, 8)),
+            },
+            {"SCIENCE": ((1, 1), (2, 3)), "CALVAL": ((1, 1), (2, 3))},
+            {"v1", "v2"},
+        ),
+        (
+            "productD",
+            {
+                "SCIENCE": Period(dt.datetime(2025, 1, 1), dt.datetime(2025, 1, 8)),
+                "CALVAL": Period(dt.datetime(2025, 1, 1), dt.datetime(2025, 1, 8)),
+            },
+            {"SCIENCE": ((1, 1), (2, 3)), "CALVAL": ((1, 1), (2, 3))},
+            {"s1", "s2"},
+        ),
+    ],
+    ids=["time_series", "half_orbits", "half_orbits_versions_subset"],
+)
+def test_filter_infos(
+    product, expected_time_coverage, expected_half_orbit_range, expected_versions
+):
+    time_coverage, half_orbit_range, versions = filter_infos(AvisoProduct(id=product))
+    assert time_coverage == expected_time_coverage
+    assert half_orbit_range == expected_half_orbit_range
+    assert versions == expected_versions
 
 
 def test_import_product_handler(product_handler_cls):

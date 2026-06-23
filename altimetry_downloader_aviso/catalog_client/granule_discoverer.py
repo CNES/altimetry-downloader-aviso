@@ -147,8 +147,8 @@ def filter_infos(
     product: AvisoProduct,
 ) -> (
     tuple[
-        dict[fcollections.implementations.SwotPhases, Period],
-        dict[fcollections.implementations.SwotPhases, HalfOrbitRange],
+        dict[str, Period],
+        dict[str, HalfOrbitRange],
         set[str] | None,
     ]
     | tuple[Period, HalfOrbitRange, set[str]]
@@ -156,7 +156,7 @@ def filter_infos(
     """Get temporal coverage, half orbit range and versions available for a
     given product.
 
-    The temporal coeverage and half orbit range are returned as dictionaries for each
+    The temporal coverage and half orbit range are returned as dictionaries for each
     Swot phases in case. This will allow
 
     Parameters
@@ -167,8 +167,8 @@ def filter_infos(
     Returns
     -------
     tuple[
-        dict[SwotPhases, Period] | Period,
-        dict[SwotPhases, HalfOrbitRange] | HalfOrbitRange | None,
+        dict[str, Period] | Period,
+        dict[str, HalfOrbitRange] | HalfOrbitRange | None,
         set[str] | None]
         The temporal coverage, half orbit range (if the product has half orbits) and
         versions available (if the product has multiple versions).

@@ -68,6 +68,7 @@ Changelog = "https://cnes.github.io/altimetry-downloader-aviso/changelog.html"
 [tool.coverage.report]
 exclude_also = [
     "if TYPE_CHECKING:",
+    "if tp.TYPE_CHECKING:",
 ]
 
 [tool.isort]

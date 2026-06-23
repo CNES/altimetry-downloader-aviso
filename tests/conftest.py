@@ -1,5 +1,7 @@
+import datetime as dt
 import json
 import re
+from enum import Enum, auto
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -13,6 +15,7 @@ from fcollections.core import (
     Layout,
     OpenMfDataset,
 )
+from fcollections.time import Period
 from requests.exceptions import ProxyError
 
 import altimetry_downloader_aviso.auth
@@ -148,9 +151,52 @@ class MyDatabase(FilesDatabase):
     layouts = [TEST_PRODUCT_LAYOUT]
     reader = OpenMfDataset()
 
+    def time_coverage(self, **kwargs):
+        return Period(dt.datetime(2025, 1, 1), dt.datetime(2025, 1, 8))
+
 
 class MyDatabase2(FilesDatabase):
     layouts = [TEST_LAYOUT, Layout([FileNameConventionTest()])]
+
+    def time_coverage(self, **kwargs):
+        return Period(dt.datetime(2025, 1, 1), dt.datetime(2025, 1, 8))
+
+    def half_orbit_range(self, **kwargs):
+        return ((1, 1), (2, 3))
+
+    def _filter_values(self, filter_name, **kwargs):
+        return {"v1", "v2"}
+
+
+class SubsetMock(Enum):
+    foo = auto()
+    bar = auto()
+
+
+class MyDatabase3(MyDatabase2):
+    @property
+    def subsets(self):
+        # Create a case similar to the reality: subset if an enum with a name attribute
+        return [
+            {"subset": SubsetMock.foo, "version": "s1"},
+            {"subset": SubsetMock.foo, "version": "s2"},
+            {"subset": SubsetMock.bar, "version": "s1"},
+        ]
+
+
+# Add version in the partitioning keys. This is a hint that is used to detect that we
+# can use the 'subsets' property for getting the 'version' possible values. If 'version'
+# is not a partitioning key, the implementation will default to the
+# FilesDatabase.filter_values method.
+MyDatabase3.unmixer = Mock()
+MyDatabase3.unmixer.keys = {"version"}
+
+# Mock the parser property to ensure that the incompatibility between
+# FileNameFieldConventionTest and the unmixer is not detected ('version' field is not in
+# the test convention). An cleaner alternative would be to rewrite the test closer to
+# the real use case with a 'version' field.
+MyDatabase3.parser = Mock()
+MyDatabase3.parser.fields = {FileNameFieldString("version")}
 
 
 @pytest.fixture
@@ -191,6 +237,7 @@ def test_product_layout():
 def patch_all(mocker):
     setattr(fcollections.implementations, "MyDatabase", MyDatabase)
     setattr(fcollections.implementations, "MyDatabase2", MyDatabase2)
+    setattr(fcollections.implementations, "MyDatabase3", MyDatabase3)
 
     mocker.patch(
         (
