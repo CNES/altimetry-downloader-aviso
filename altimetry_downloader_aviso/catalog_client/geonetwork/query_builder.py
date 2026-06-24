@@ -8,6 +8,7 @@ class Operator(Enum):
 
     MATCH = "match"
     TERM = "term"
+    TERMS = "terms"
     RANGE = "range"
 
 
@@ -90,6 +91,10 @@ class GeoNetworkQueryBuilder:
     def must_term(self, field: Field, value: Any):
         """Adds a `must` clause with `term` operator."""
         return self._add_clause(ClauseType.MUST, Operator.TERM, field, value)
+
+    def must_terms(self, field: Field, value: Any):
+        """Adds a `must` clause with `term` operator."""
+        return self._add_clause(ClauseType.MUST, Operator.TERMS, field, value)
 
     def must_not_match(self, field: Field, value: Any):
         """Adds a `must_not` clause with `match` operator."""

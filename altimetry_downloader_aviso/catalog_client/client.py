@@ -2,6 +2,7 @@ import logging
 import os
 
 import requests
+import yaml
 
 from .geonetwork import (
     AvisoCatalog,
@@ -11,7 +12,7 @@ from .geonetwork import (
     parse_catalog_response,
     parse_product_response,
 )
-from .granule_discoverer import filter_granules
+from .granule_discoverer import TDS_LAYOUT_CONFIG, filter_granules
 
 logger = logging.getLogger(__name__)
 
@@ -99,12 +100,17 @@ def _request_catalog() -> dict:
     """Request AVISO's catalog products: filters on CDS-AVISO and SWOT."""
     url = os.path.join(AVISO_CATALOG_URL, "search/records/_search")
 
+    # Retrieve the list of configured products from the TDS layout declaration. The IDs
+    # will be used to restrict the perimeter (aka supported products) of the client.
     builder = GeoNetworkQueryBuilder()
+    with open(TDS_LAYOUT_CONFIG) as f:
+        tds_layout = yaml.safe_load(f)
+        known_ids = tds_layout["products"].keys()
+
     payload = (
-        builder.must_match(Field.DATA_CENTER, "CDS-AVISO")
-        .must_match(Field.PLATFORMS, "SWOT")
-        .must_not_term(Field.ID, "94cd8b08-bf24-4f59-8ce5-bc27c6bd9c17")
-        .must_not_term(Field.ID, "96d932e6-07d0-447f-858a-90ff1ce53087")
+        builder.must_term(Field.DATA_CENTER, "CDS-AVISO")
+        .must_term(Field.PLATFORMS, "SWOT")
+        .must_terms(Field.ID, list(known_ids))
         .build()
     )
 
