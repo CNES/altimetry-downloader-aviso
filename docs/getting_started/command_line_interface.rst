@@ -172,6 +172,28 @@ This command downloads Swot LR L3 Basic, cycle number 7, half-orbit 12, version 
     Downloaded files (1) :
     - aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v1.0.2.nc
 
+List filter values
+~~~~~~~~~~~~~~~~~~
+
+To help specifying the filter options of the ``get`` command, a dedicated ``help-query`` command lists the temporal coverage, half orbit range (if relevant)
+and versions of a product. When dealing with a product that follows a satellite orbit, the information is displayed for each phase of the mission.
+
+.. code-block:: console
+
+    $ altimetry-downloader-aviso help-query SWOT_L3_LR_SSH_Basic
+                                                    Dataset Information
+    ┏━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
+    ┃ Phase   ┃ Property          ┃ Value                                                    ┃ get parameters  ┃
+    ┡━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
+    │ CALVAL  │ Temporal Coverage │ [2023-03-28T23:44:17.000000, 2023-07-10T09:12:05.000000] │ --start, --end  │
+    │         │ Half Orbit Range  │ ((474, 3), (578, 4))                                     │ --cycle, --pass │
+    ├─────────┼───────────────────┼──────────────────────────────────────────────────────────┼─────────────────┤
+    │ SCIENCE │ Temporal Coverage │ [2023-07-26T12:27:56.000000, 2026-06-22T20:46:05.000000] │ --start, --end  │
+    │         │ Half Orbit Range  │ ((1, 149), (52, 99))                                     │ --cycle, --pass │
+    ├─────────┼───────────────────┼──────────────────────────────────────────────────────────┼─────────────────┤
+    │ All     │ Versions          │ 1.0.2, 2.0, 2.0.1, 3.0                                   │ --version       │
+    └─────────┴───────────────────┴──────────────────────────────────────────────────────────┴─────────────────┘
+
 
 Further Reading
 ----------------

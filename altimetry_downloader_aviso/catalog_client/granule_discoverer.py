@@ -5,6 +5,7 @@ import typing as tp
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
 import yaml
@@ -25,7 +26,9 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore", category=ImportWarning)
     import fcollections.implementations
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
+    # do not use tp.TYPE_CHECKING, else sphinx-autodoc-typehints will not load these
+    # imports and will raise a warning.
     from fcollections.time import Period
 
     HalfOrbitRange = tuple[int, int], tuple[int, int]
@@ -151,13 +154,18 @@ def filter_infos(
         dict[str, HalfOrbitRange],
         set[str] | None,
     ]
-    | tuple[Period, HalfOrbitRange, set[str]]
+    | tuple[Period, None, set[str] | None]
 ):
     """Get temporal coverage, half orbit range and versions available for a
     given product.
 
     The temporal coverage and half orbit range are returned as dictionaries for each
     Swot phases in case. This will allow
+
+    See Also
+    --------
+    :func:`altimetry_downloader_aviso.get_product_from_short_name`
+        For getting a product from its short name.
 
     Parameters
     ----------
@@ -166,10 +174,8 @@ def filter_infos(
 
     Returns
     -------
-    tuple[
-        dict[str, Period] | Period,
-        dict[str, HalfOrbitRange] | HalfOrbitRange | None,
-        set[str] | None]
+    tuple[dict[str, Period], dict[str, HalfOrbitRange], set[str] | None] \
+        | tuple[Period, None, set[str] | None]
         The temporal coverage, half orbit range (if the product has half orbits) and
         versions available (if the product has multiple versions).
     """

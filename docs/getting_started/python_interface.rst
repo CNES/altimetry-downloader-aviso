@@ -4,11 +4,11 @@ Python Interface
 The ``altimetry_downloader_aviso`` tool provides a simple Python API to programmatically interact
 with the Aviso catalog.
 
-It exposes the same three core operations as the CLI: ``summary``, ``details``, and ``get``.
+It exposes the same three core operations as the CLI: ``summary``, ``details``, ``get`` and ``help-query``.
 
 .. code-block:: python
 
-    from altimetry_downloader_aviso import summary, details, get
+    from altimetry_downloader_aviso import summary, details, get, get_product_from_short_name, filter_infos
 
 Basic Usage
 -----------
@@ -62,6 +62,22 @@ Download a product using :func:`altimetry_downloader_aviso.get()` function.
 .. caution::
 
     By default, already existing files are not re-downloaded. Use ``--overwrite`` option to force re-download.
+
+List filter values
+~~~~~~~~~~~~~~~~~~
+
+List the relevant filter values of the ``get`` command using the :func:`altimetry_downloader_aviso.filter_infos()` function.
+
+.. code-block:: pycon
+
+    >>> product = get_product_from_short_name("SWOT_L3_LR_SSH_Basic")
+    >>> temporal_coverage, half_orbit_range, versions = filter_infos(product)
+    >>> print(temporal_coverage)
+    {'CALVAL': [2023-03-28T23:44:17.000000, 2023-07-10T09:12:05.000000], 'SCIENCE': [2023-07-26T12:27:56.000000, 2026-06-22T20:46:05.000000]}
+    >>> print(half_orbit_range)
+    {'CALVAL': ((474, 3), (578, 4)), 'SCIENCE': ((1, 149), (52, 99))}
+    >>> print(versions)
+    {'1.0.2', '3.0', '2.0', '2.0.1'}
 
 
 Further Reading

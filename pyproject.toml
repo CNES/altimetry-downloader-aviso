@@ -50,8 +50,7 @@ tests = [
     "pytest-mock",
     "pyyaml",
 ]
-# Unpin sphinx<9 when RTD theme is compatible
-doc = ["sphinx<9", "sphinx-autodoc-typehints", "sphinx-book-theme", "sphinx-design"]
+doc = ["sphinx", "sphinx-autodoc-typehints", "sphinx-book-theme", "sphinx-design"]
 
 [tool.setuptools.package-data]
 "*" = ["*.yaml", "*.yml"]
