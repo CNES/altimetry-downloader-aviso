@@ -35,6 +35,14 @@ def test_must_term_clause():
     assert payload["query"]["bool"]["must"][0] == {"term": {"_id": "some-id"}}
 
 
+def test_must_terms_clause():
+    builder = GeoNetworkQueryBuilder()
+    payload = builder.must_terms(Field.ID, ["id1", "id2"]).build()
+
+    assert "must" in payload["query"]["bool"]
+    assert payload["query"]["bool"]["must"][0] == {"terms": {"_id": ["id1", "id2"]}}
+
+
 def test_must_not_term_clause():
     builder = GeoNetworkQueryBuilder()
     payload = builder.must_not_term(Field.ID, "some-id").build()
