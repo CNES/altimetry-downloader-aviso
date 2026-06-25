@@ -4,7 +4,19 @@ Python Interface
 The ``altimetry_downloader_aviso`` tool provides a simple Python API to programmatically interact
 with the Aviso catalog.
 
-It exposes the same three core operations as the CLI: ``summary``, ``details``, ``get`` and ``help-query``.
+It exposes the same Python functions equivalent to the CLI
+
++------------------------------------+---------------------------------------------------+
+| Command Line Interface             | Python Function                                   |
++====================================+===================================================+
+| :ref:`summary <cli_summary>`       | :func:`altimetry_downloader_aviso.summary()`      |
++------------------------------------+---------------------------------------------------+
+| :ref:`details <cli_details>`       | :func:`altimetry_downloader_aviso.details()`      |
++------------------------------------+---------------------------------------------------+
+| :ref:`help-query <cli_help_query>` | :func:`altimetry_downloader_aviso.filter_infos()` |
++------------------------------------+---------------------------------------------------+
+| :ref:`get <cli_get>`               | :func:`altimetry_downloader_aviso.get()`          |
++------------------------------------+---------------------------------------------------+
 
 .. code-block:: python
 

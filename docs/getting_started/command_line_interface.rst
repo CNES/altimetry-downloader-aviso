@@ -30,6 +30,8 @@ The command line interface provides three main commands:
     - Use ``--verbose`` or ``--quiet`` options to adjust logging verbosity.
 
 
+.. _cli_summary:
+
 List available products
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -64,6 +66,7 @@ This will print a concise overview of the products (short names and titles).
     │ SWOT_L3_LR_WIND_WAVE_Light    │ Wind & Wave product SWOT Level-3 WindWave - Light                                                  │
     └───────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
+.. _cli_details:
 
 View product details
 ~~~~~~~~~~~~~~~~~~~~
@@ -125,6 +128,8 @@ Download a given Aviso product using ``get`` command.
 
    altimetry-downloader-aviso get <product_short_name> --output <directory> [--cycle <comma separated values/ranges>>] [--pass <comma separated values/ranges>] [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--version <product version>]
 
+.. _cli_help_query:
+
 **List filter values**
 
 Before downloading data with the ``get`` command, a dedicated ``help-query`` command lists the temporal coverage, half orbit range (if relevant)
@@ -147,6 +152,7 @@ This information can be used to configure the ``get`` command arguments filterin
     │ All     │ Versions          │ 1.0.2, 2.0, 2.0.1, 3.0                                   │ --version       │
     └─────────┴───────────────────┴──────────────────────────────────────────────────────────┴─────────────────┘
 
+.. _cli_get:
 
 **Example cycle/pass filter:**
 
