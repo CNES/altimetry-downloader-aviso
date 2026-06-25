@@ -1,6 +1,20 @@
 Release Notes
 =============
 
+0.4.0 (2026-06-25)
+------------------
+
+Added a new ``help-query`` subcommand to give additional information about the temporal coverage,
+half orbit range and versions of a given product. This should be useful to configure the parameters
+of the ``get`` command.
+
+``files_collections`` dependency has been bumped to v2.0.0. This version introduces the necessary
+features for the ``help-query`` subcommand.
+
+A list of supported products is now enforced. This will prevent listing new products added on the server
+without any prior validation on the client side. See the related issue `#4 <https://github.com/CNES/altimetry-downloader-aviso/issues/4>`_.
+
+
 0.3.2 (2026-04-28)
 ------------------
 
