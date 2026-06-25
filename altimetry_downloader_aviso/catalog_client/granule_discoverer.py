@@ -5,6 +5,7 @@ import typing as tp
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
 import yaml
@@ -24,6 +25,13 @@ with warnings.catch_warnings():
     # not need these functionalities, so we can ignore this warning
     warnings.simplefilter("ignore", category=ImportWarning)
     import fcollections.implementations
+
+if TYPE_CHECKING:
+    # do not use tp.TYPE_CHECKING, else sphinx-autodoc-typehints will not load these
+    # imports and will raise a warning.
+    from fcollections.time import Period
+
+    HalfOrbitRange = tuple[int, int], tuple[int, int]
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +144,78 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     granules = instance.list_files(**filters)
 
     return granules.filename
+
+
+def filter_infos(
+    product: AvisoProduct,
+) -> (
+    tuple[
+        dict[str, Period],
+        dict[str, HalfOrbitRange],
+        set[str] | None,
+    ]
+    | tuple[Period, None, set[str] | None]
+):
+    """Get temporal coverage, half orbit range and versions available for a
+    given product.
+
+    The temporal coverage and half orbit range are returned as dictionaries for each
+    Swot phases in case. This will allow
+
+    See Also
+    --------
+    :func:`altimetry_downloader_aviso.get_product_from_short_name`
+        For getting a product from its short name.
+
+    Parameters
+    ----------
+    product
+        the aviso product.
+
+    Returns
+    -------
+    tuple[dict[str, Period], dict[str, HalfOrbitRange], set[str] | None] \
+        | tuple[Period, None, set[str] | None]
+        The temporal coverage, half orbit range (if the product has half orbits) and
+        versions available (if the product has multiple versions).
+    """
+    # Get TDS product layout
+    product_layout_conf = _parse_tds_layout(product)
+
+    instance = _load_product_handler(product_layout_conf)
+
+    temporal_coverage = {}
+    half_orbit_range = {}
+    try:
+        for phase in fcollections.implementations.SwotPhases:
+            half_orbit_range[phase.name] = instance.half_orbit_range(
+                **product_layout_conf.default_filters, phase=phase
+            )
+            temporal_coverage[phase.name] = instance.time_coverage(
+                **product_layout_conf.default_filters, phase=phase
+            )
+    except AttributeError:
+        half_orbit_range = None
+        temporal_coverage = instance.time_coverage(
+            **product_layout_conf.default_filters
+        )
+
+    try:
+        subsets = instance.subsets
+        if len(subsets) == 0 or "version" not in instance.unmixer.keys:
+            versions = instance.filter_values(
+                "version", **product_layout_conf.default_filters
+            )
+        else:
+            versions = {
+                s["version"]
+                for s in instance.subsets
+                if s["subset"].name == product_layout_conf.default_filters["subset"]
+            }
+    except ValueError:
+        versions = None
+
+    return temporal_coverage, half_orbit_range, versions
 
 
 def _load_product_handler(product_config: ProductLayoutConfig) -> FilesDatabase:

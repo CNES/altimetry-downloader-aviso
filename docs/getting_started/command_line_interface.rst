@@ -22,13 +22,15 @@ The command line interface provides three main commands:
 
 1. **summary** to list available products in the catalog;
 2. **details** to view detailed metadata for a specific product;
-3. **get** to download a given product applying filters.
+3. **get** to download a given product applying filters, and the associated auxiliary command **help-query** for configuring said filters.
 
 .. tip::
 
     - Use ``--help`` with any command to see available options.
     - Use ``--verbose`` or ``--quiet`` options to adjust logging verbosity.
 
+
+.. _cli_summary:
 
 List available products
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -64,6 +66,7 @@ This will print a concise overview of the products (short names and titles).
     │ SWOT_L3_LR_WIND_WAVE_Light    │ Wind & Wave product SWOT Level-3 WindWave - Light                                                  │
     └───────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
+.. _cli_details:
 
 View product details
 ~~~~~~~~~~~~~~~~~~~~
@@ -124,6 +127,32 @@ Download a given Aviso product using ``get`` command.
 .. code-block:: bash
 
    altimetry-downloader-aviso get <product_short_name> --output <directory> [--cycle <comma separated values/ranges>>] [--pass <comma separated values/ranges>] [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--version <product version>]
+
+.. _cli_help_query:
+
+**List filter values**
+
+Before downloading data with the ``get`` command, a dedicated ``help-query`` command lists the temporal coverage, half orbit range (if relevant)
+and versions of a product. When dealing with a product that follows a satellite orbit, the information is displayed for each phase of the mission.
+This information can be used to configure the ``get`` command arguments filtering the granules.
+
+.. code-block:: console
+
+    $ altimetry-downloader-aviso help-query SWOT_L3_LR_SSH_Basic
+                                                    Dataset Information
+    ┏━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
+    ┃ Phase   ┃ Property          ┃ Value                                                    ┃ get parameters  ┃
+    ┡━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
+    │ CALVAL  │ Temporal Coverage │ [2023-03-28T23:44:17.000000, 2023-07-10T09:12:05.000000] │ --start, --end  │
+    │         │ Half Orbit Range  │ ((474, 3), (578, 4))                                     │ --cycle, --pass │
+    ├─────────┼───────────────────┼──────────────────────────────────────────────────────────┼─────────────────┤
+    │ SCIENCE │ Temporal Coverage │ [2023-07-26T12:27:56.000000, 2026-06-22T20:46:05.000000] │ --start, --end  │
+    │         │ Half Orbit Range  │ ((1, 149), (52, 99))                                     │ --cycle, --pass │
+    ├─────────┼───────────────────┼──────────────────────────────────────────────────────────┼─────────────────┤
+    │ All     │ Versions          │ 1.0.2, 2.0, 2.0.1, 3.0                                   │ --version       │
+    └─────────┴───────────────────┴──────────────────────────────────────────────────────────┴─────────────────┘
+
+.. _cli_get:
 
 **Example cycle/pass filter:**
 

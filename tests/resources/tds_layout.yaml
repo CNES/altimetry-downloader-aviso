@@ -14,9 +14,17 @@ products:
 
   productC:
     short_name: sample_product_c
-    data_type: TEST_TYPE
+    data_type: TEST_TYPE_2
     catalog_path: productC_path
+
+  productD:
+    short_name: sample_product_d
+    data_type: TEST_TYPE_3
+    catalog_path: productC_path
+    filters:
+      subset: foo
 
 granule_discovery:
   TEST_TYPE: MyDatabase
   TEST_TYPE_2: MyDatabase2
+  TEST_TYPE_3: MyDatabase3

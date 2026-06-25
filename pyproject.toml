@@ -13,7 +13,7 @@ dependencies = [
     "siphon",
     "typer",
     "rich",
-    "files-collections>=1",
+    "files-collections>=2",
     "pyyaml",
     "pydantic"
 ]
@@ -50,8 +50,7 @@ tests = [
     "pytest-mock",
     "pyyaml",
 ]
-# Unpin sphinx<9 when RTD theme is compatible
-doc = ["sphinx<9", "sphinx-autodoc-typehints", "sphinx-book-theme", "sphinx-design"]
+doc = ["sphinx", "sphinx-autodoc-typehints", "sphinx-book-theme", "sphinx-design"]
 
 [tool.setuptools.package-data]
 "*" = ["*.yaml", "*.yml"]
@@ -68,6 +67,7 @@ Changelog = "https://cnes.github.io/altimetry-downloader-aviso/changelog.html"
 [tool.coverage.report]
 exclude_also = [
     "if TYPE_CHECKING:",
+    "if tp.TYPE_CHECKING:",
 ]
 
 [tool.isort]
