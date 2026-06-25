@@ -4,7 +4,7 @@ Python Interface
 The ``altimetry_downloader_aviso`` tool provides a simple Python API to programmatically interact
 with the Aviso catalog.
 
-It exposes the same Python functions equivalent to the CLI
+It exposes the Python functions equivalent to the CLI
 
 +------------------------------------+---------------------------------------------------+
 | Command Line Interface             | Python Function                                   |
