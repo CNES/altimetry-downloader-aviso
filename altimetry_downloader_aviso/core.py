@@ -12,6 +12,7 @@ from .catalog_client.client import (
     search_granules,
 )
 from .catalog_client.geonetwork import AvisoCatalog, AvisoProduct
+from .subset import subset_multiple_files
 from .tds_client import http_bulk_download
 
 logger = logging.getLogger(__name__)
@@ -121,8 +122,9 @@ def subset(
     time: tuple[np.datetime64, np.datetime64] | None = None,
     version: str | None = None,
     overwrite: bool = False,
-    box: tuple[float, float, float, float] = None,
-):
+    box: tuple[float, float, float, float] | None = None,
+    selected_variables: list[str] | None = None,
+) -> list[str]:
     filters = {}
     if cycle_number is not None:
         filters["cycle_number"] = cycle_number
@@ -134,4 +136,23 @@ def subset(
         filters["version"] = version
 
     granule_paths = search_granules(product_short_name, Protocol.DAP2, **filters)
-    print(granule_paths.tolist())
+    granule_paths = granule_paths.tolist()
+
+    local_files = [pl.Path(output_dir) / os.path.basename(p) for p in granule_paths]
+    exist = [f.exists() for f in local_files]
+
+    if not overwrite:
+        granule_paths = [g for g, e in zip(granule_paths, exist) if not e]
+        logger.debug("%d files already exist and will be kept.", sum(exist))
+    else:
+        logger.debug("%d files already exist and will be overwritten.", sum(exist))
+
+    logger.info("Subsetting %d granules...", len(granule_paths))
+
+    try:
+        return subset_multiple_files(
+            granule_paths, local_files, box, selected_variables
+        )
+    except AuthenticationError as e:
+        logging.error(e)
+        return []
