@@ -4,6 +4,7 @@ import logging
 import typing as tp
 import warnings
 from dataclasses import dataclass
+from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
@@ -40,6 +41,21 @@ TDS_CATALOG_BASE_URL = "https://tds-odatis.aviso.altimetry.fr/thredds/catalog/"
 TDS_LAYOUT_CONFIG = Path(__file__).parent / "resources" / "tds_layout.yaml"
 
 
+class Protocol(Enum):
+    """Protocols supported by the TDS server."""
+
+    HTTP = auto()
+    """HTTP request of a granule.
+
+    Used to download the entire file.
+    """
+    DAP2 = auto()
+    """OpenDAP protocol.
+
+    Used to trigger server subsetting of the granule.
+    """
+
+
 class GranuleNode(FileNode):
     """File node of a TDS tree."""
 
@@ -63,8 +79,11 @@ class RemoteDirNode(INode):
         name: str,
         info: dict[str, tp.Any],
         level: int,
+        protocol: Protocol,
     ):
         super().__init__(name, info, level)
+        self._protocol = protocol
+        self._access_url_key = "HTTPServer" if protocol == Protocol.HTTP else "OPeNDAP"
         self._children: list[INode] | None = None
 
     def accept(self, visitor: LayoutVisitor) -> VisitResult:
@@ -83,7 +102,7 @@ class RemoteDirNode(INode):
         next_level = self.level + 1
 
         granules = [
-            GranuleNode(name, {"name": d.access_urls["HTTPServer"]}, next_level)
+            GranuleNode(name, {"name": d.access_urls[self._access_url_key]}, next_level)
             for name, d in cat.datasets.items()
         ]
         logger.debug("%s has %d granule children", self.name, len(granules))
@@ -98,7 +117,7 @@ class RemoteDirNode(INode):
         #              dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/v1_0_1/Unsmoothed/
         #              cycle_001/catalog.xml
         catalog_refs = [
-            RemoteDirNode(folder, {"name": ref.href}, next_level)
+            RemoteDirNode(folder, {"name": ref.href}, next_level, self._protocol)
             for folder, ref in cat.catalog_refs.items()
         ]
         logger.debug("%s has %d non-granule children", self.name, len(catalog_refs))
@@ -106,7 +125,7 @@ class RemoteDirNode(INode):
         return granules + catalog_refs
 
 
-def filter_granules(product: AvisoProduct, **filters) -> list[str]:
+def filter_granules(product: AvisoProduct, protocol: Protocol, **filters) -> list[str]:
     """Filter granules of a product in AVISO's Thredds Data Server.
 
     Parameters
@@ -131,7 +150,7 @@ def filter_granules(product: AvisoProduct, **filters) -> list[str]:
     # Get TDS product layout
     product_layout_conf = _parse_tds_layout(product)
 
-    instance = _load_product_handler(product_layout_conf)
+    instance = _load_product_handler(product_layout_conf, protocol)
 
     # Allow unknown filters for this method to add flexibility for the multiple products
     # handled in the AVISO downloader. We just ignore them instead of raising an error
@@ -218,7 +237,9 @@ def filter_infos(
     return temporal_coverage, half_orbit_range, versions
 
 
-def _load_product_handler(product_config: ProductLayoutConfig) -> FilesDatabase:
+def _load_product_handler(
+    product_config: ProductLayoutConfig, protocol: Protocol
+) -> FilesDatabase:
     # Build TDS catalog URL
     tds_url = urljoin(
         TDS_CATALOG_BASE_URL,
@@ -227,7 +248,9 @@ def _load_product_handler(product_config: ProductLayoutConfig) -> FilesDatabase:
 
     # Root node of the TDS. The node name (not the URL) should be given as an argument,
     # whereas the URL is given in the additional information
-    root_node = RemoteDirNode(product_config.catalog_path, {"name": tds_url}, 0)
+    root_node = RemoteDirNode(
+        product_config.catalog_path, {"name": tds_url}, 0, protocol
+    )
 
     # Create the product handler instance. Use a fs.Mock to bypass catalog path exist
     # check in the file system.

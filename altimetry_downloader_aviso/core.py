@@ -6,6 +6,7 @@ import numpy as np
 
 from .auth import AuthenticationError
 from .catalog_client.client import (
+    Protocol,
     fetch_catalog,
     get_details,
     search_granules,
@@ -83,7 +84,7 @@ def get(
     if version is not None:
         filters["version"] = version
 
-    granule_paths = search_granules(product_short_name, **filters)
+    granule_paths = search_granules(product_short_name, Protocol.HTTP, **filters)
 
     if overwrite:
         logger.info("%d files to download.", len(granule_paths))
@@ -110,3 +111,27 @@ def get(
     except AuthenticationError as e:
         logging.error(e)
         return []
+
+
+def subset(
+    product_short_name: str,
+    output_dir: str | pl.Path,
+    cycle_number: int | list[int] | None = None,
+    pass_number: int | list[int] | None = None,
+    time: tuple[np.datetime64, np.datetime64] | None = None,
+    version: str | None = None,
+    overwrite: bool = False,
+    box: tuple[float, float, float, float] = None,
+):
+    filters = {}
+    if cycle_number is not None:
+        filters["cycle_number"] = cycle_number
+    if pass_number is not None:
+        filters["pass_number"] = pass_number
+    if time is not None:
+        filters["time"] = time
+    if version is not None:
+        filters["version"] = version
+
+    granule_paths = search_granules(product_short_name, Protocol.DAP2, **filters)
+    print(granule_paths.tolist())

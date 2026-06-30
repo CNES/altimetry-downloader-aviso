@@ -12,7 +12,7 @@ from .geonetwork import (
     parse_catalog_response,
     parse_product_response,
 )
-from .granule_discoverer import TDS_LAYOUT_CONFIG, filter_granules
+from .granule_discoverer import TDS_LAYOUT_CONFIG, Protocol, filter_granules
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +62,17 @@ def get_details(product_short_name: str) -> AvisoProduct:
     return product
 
 
-def search_granules(product_short_name: str, **filters) -> list[str]:
+def search_granules(
+    product_short_name: str, protocol: Protocol.HTTP, **filters
+) -> list[str]:
     """Search for granules of a product in AVISO's Thredds Data Server.
 
     Parameters
     ----------
     product_short_name: str
         the short name of the product
+    protocol
+        Whether the granule URL should return the fileAccess (HTTP) or OpenDAP protocol.
     **filters
         filters for files selection. Unknown filters for the requested product will be
         ignored.
@@ -83,7 +87,7 @@ def search_granules(product_short_name: str, **filters) -> list[str]:
         In case the product short name doesn't correspond to any product
     """
     product = get_product_from_short_name(product_short_name)
-    return filter_granules(product, **filters)
+    return filter_granules(product, protocol, **filters)
 
 
 def get_product_from_short_name(product_short_name: str) -> AvisoProduct:
