@@ -202,6 +202,50 @@ This command downloads Swot LR L3 Basic, cycle number 7, half-orbit 12, version 
     - aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v1.0.2.nc
 
 
+.. _cli_subset:
+
+Subset a product
+~~~~~~~~~~~~~~~~
+
+The ``subset`` command can select a part of a given AVISO product. It can be
+parametrized with:
+
+* An area of interest: ``--box/-b`` parameter given as (lon_min, lat_min, lon_max, lat_max),
+  with the longitudes in any convention, and lon_min < lon_max
+* A subset of variables: ``--variables/-x`` parameter
+
+
+**Usage:**
+
+.. code-block:: bash
+
+   altimetry-downloader-aviso subset <product_short_name> --output <directory> [--cycle <comma separated values/ranges>>] [--pass <comma separated values/ranges>] [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--version <product version>] [--variables <selected variables>] [--box <box>]
+
+The filters used in the ``get`` command (cycle, pass, start, end, version) should also
+be used to find the granules prior the subsetting. If a granule does not contain any
+data in the area of interest, it will not be downloaded.
+
+It is advised to refer to the `Altimetry Search tool <https://github.com/CNES/altimetry-search>`_
+in order to find the track falling in a given area.
+
+.. note::
+
+    Subsetting is not implemented yet for the following products:
+        * L4_with_SWOT
+        * SWOT_L3_LR_WIND_WAVE_Light
+        * SWOT_L3_LR_WIND_WAVE_Extended
+
+**Example**
+
+.. code-block:: console
+
+    $ altimetry-downloader-aviso subset SWOT_L3_LR_SSH_Unsmoothed --box -10,10,10,40 --variables ssha_unfiltered,time --cycle 1 --pass 223,225,236 -o aviso_dir --version 2.0.1
+    Local files (2) :
+    - aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_223_20230729T035501_20230729T044628_v2.0.1.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_236_20230729T150439_20230729T155517_v2.0.1.nc
+
+
+
 Further Reading
 ----------------
 

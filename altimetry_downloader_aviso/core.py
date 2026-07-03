@@ -77,8 +77,8 @@ def get(
 
     Returns
     -------
-        The list of downloaded local file paths and local files matching the request
-        that were already present.
+        The list of local files matching the request, including both that were already
+        present, and those created by the get operation.
     """
     filters = dict(
         filter(
@@ -162,8 +162,8 @@ def subset(
 
     Returns
     -------
-        The list of subsetted local file paths and local files matching the request that
-        were already present.
+        The list of local files matching the request, including both that were already
+        present, and those created by the subset operation.
     """
     # Trigger short name verification before checking if subset is enabled for the
     # dataset. This should emit a better error message for the user.

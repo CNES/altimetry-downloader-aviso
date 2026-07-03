@@ -337,7 +337,7 @@ def subset(
     selected_variables: list = typer.Option(
         None,
         "--variables",
-        "-v",
+        "-x",
         help="Variables to download.",
         parser=lambda variables: [v.strip() for v in variables.split(",")],
     ),
