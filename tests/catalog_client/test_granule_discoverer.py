@@ -4,6 +4,7 @@ import pytest
 from fcollections.time import Period
 from requests.exceptions import ProxyError
 
+from altimetry_downloader_aviso.catalog_client.client import Protocol
 from altimetry_downloader_aviso.catalog_client.geonetwork.models.model import (
     AvisoProduct,
 )
@@ -108,14 +109,14 @@ class Test_FileSystemMetadataCollector:
 
 
 def test_filter_granules():
-    urls = filter_granules(AvisoProduct(id="productA"))
+    urls = filter_granules(AvisoProduct(id="productA"), Protocol.HTTP)
     assert list(urls) == [
         "https://tds.mock/productA_path/cycle_02/dataset_02_02.nc",
         "https://tds.mock/productA_path/cycle_02/dataset_02_22.nc",
         "https://tds.mock/productA_path/cycle_03/dataset_03_03.nc",
         "https://tds.mock/productA_path/cycle_03/dataset_03_33.nc",
     ]
-    urls = filter_granules(AvisoProduct(id="productA"), pass_number=3)
+    urls = filter_granules(AvisoProduct(id="productA"), Protocol.HTTP, pass_number=3)
     assert list(urls) == ["https://tds.mock/productA_path/cycle_03/dataset_03_03.nc"]
 
 

@@ -201,7 +201,7 @@ def filter_infos(
     # Get TDS product layout
     product_layout_conf = _parse_tds_layout(product)
 
-    instance = _load_product_handler(product_layout_conf)
+    instance = _load_product_handler(product_layout_conf, Protocol.HTTP)
 
     temporal_coverage = {}
     half_orbit_range = {}

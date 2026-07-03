@@ -19,7 +19,10 @@ from fcollections.time import Period
 from requests.exceptions import ProxyError
 
 import altimetry_downloader_aviso.auth
-from altimetry_downloader_aviso.catalog_client.granule_discoverer import RemoteDirNode
+from altimetry_downloader_aviso.catalog_client.granule_discoverer import (
+    Protocol,
+    RemoteDirNode,
+)
 
 # PATCH GEONETWORK CATALOG RESPONSES
 
@@ -206,7 +209,9 @@ def product_handler_cls() -> type[FilesDatabase]:
 
 @pytest.fixture(scope="session")
 def product_handler() -> FilesDatabase:
-    root_node = RemoteDirNode("root", {"name": "https://tds.mock/catalog.xml"}, 0)
+    root_node = RemoteDirNode(
+        "root", {"name": "https://tds.mock/catalog.xml"}, 0, Protocol.HTTP
+    )
     instance = MyDatabase2("root", fs=Mock())
     instance.discoverer.root_node = root_node
     return instance
@@ -214,7 +219,9 @@ def product_handler() -> FilesDatabase:
 
 @pytest.fixture(scope="session")
 def product_handler_bad() -> FilesDatabase:
-    root_node = RemoteDirNode("root", {"name": "https://bad_url/catalog.xml"}, 0)
+    root_node = RemoteDirNode(
+        "root", {"name": "https://bad_url/catalog.xml"}, 0, Protocol.HTTP
+    )
     instance = MyDatabase2("root", fs=Mock())
     instance.discoverer.root_node = root_node
     return instance
@@ -222,7 +229,9 @@ def product_handler_bad() -> FilesDatabase:
 
 @pytest.fixture(scope="session")
 def product_handler_no_layouts() -> FilesDatabase:
-    root_node = RemoteDirNode("root", {"name": "https://tds.mock/catalog.xml"}, 0)
+    root_node = RemoteDirNode(
+        "root", {"name": "https://tds.mock/catalog.xml"}, 0, Protocol.HTTP
+    )
     instance = MyDatabase2("root", fs=Mock(), enable_layouts=False)
     instance.discoverer.root_node = root_node
     return instance

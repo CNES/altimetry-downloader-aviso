@@ -357,8 +357,8 @@ def subset(
     """Subset a product from Aviso's Thredds Data Server for a given area and
     variables.
 
-    Example : get a_prod_short_name --output tmp_dir
-    --cycle 7,8 --pass 12-14,21 --version 1.0
+    Example : subset SWOT_L3_LR_SSH_Unsmoothed --output tmp_dir
+    --cycle 7,8 --pass 12-14,21 --version 3.0
     """
 
     _setup_logging(quiet=quiet, verbose=verbose)

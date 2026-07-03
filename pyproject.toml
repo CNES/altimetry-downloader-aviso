@@ -15,7 +15,8 @@ dependencies = [
     "rich",
     "files-collections>=2",
     "pyyaml",
-    "pydantic"
+    "pydantic",
+    "xarray",
 ]
 authors = [
     {name = "Robin Chevrier", email = "rchevrier@groupcls.com"},
