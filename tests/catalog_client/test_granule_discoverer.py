@@ -10,6 +10,7 @@ from altimetry_downloader_aviso.catalog_client.geonetwork.models.model import (
 )
 from altimetry_downloader_aviso.catalog_client.granule_discoverer import (
     ProductLayoutConfig,
+    RemoteDirNode,
     _import_product_handler,
     _parse_tds_layout,
     filter_granules,
@@ -204,3 +205,15 @@ def test_parse_tds_layout_bad_product():
         "tds_layout configuration file.",
     ):
         _parse_tds_layout(AvisoProduct(id="bad_product_id"))
+
+
+def test_bad_access_url_key():
+    node = RemoteDirNode(
+        "cycle_02",
+        {"name": "https://tds.mock/productA_path/cycle_02/catalog.xml"},
+        1,
+        Protocol.HTTP,
+    )
+    node._access_url_key = "bad_url_key"
+    with pytest.warns(UserWarning, match="Cannot retrieve access URL"):
+        node.children()

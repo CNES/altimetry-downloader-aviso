@@ -92,6 +92,7 @@ class RemoteDirNode(INode):
     def children(self) -> tp.Iterable[INode]:
         # Cache children computation to avoid expensive relisting and ensure
         # that one path of the TDS tree will be represented by the same node
+        # Will raise a UserWarning if a TDS entry does not have the requested URL key
         if self._children is None:
             self._children = list(self._compute_children())
         return self._children
@@ -101,10 +102,18 @@ class RemoteDirNode(INode):
         cat = TDSCatalog(self.info["name"])
         next_level = self.level + 1
 
-        granules = [
-            GranuleNode(name, {"name": d.access_urls[self._access_url_key]}, next_level)
-            for name, d in cat.datasets.items()
-        ]
+        granules = []
+        for name, d in cat.datasets.items():
+            try:
+                granules.append(
+                    GranuleNode(
+                        name, {"name": d.access_urls[self._access_url_key]}, next_level
+                    )
+                )
+            except KeyError as e:
+                logger.exception(e)
+                msg = f"Cannot retrieve access URL for granule {name}"
+                warnings.warn(msg)
         logger.debug("%s has %d granule children", self.name, len(granules))
 
         # Each `catalog_refs` should have (name, ref), and it should be possible

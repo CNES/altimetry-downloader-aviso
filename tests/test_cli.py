@@ -260,6 +260,53 @@ def test_get_bad_product(tmp_path):
     ) in result.output
 
 
+def test_subset_simple_filters(mocker, tmp_path):
+    mocked_get = mocker.patch.object(
+        ac_core, "subset", return_value=["file_01.nc", "file_02.nc"]
+    )
+    result = runner.invoke(
+        app,
+        [
+            "subset",
+            "AVISO-SWOT",
+            "--output",
+            str(tmp_path),
+            "--version",
+            "1.0",
+            "--cycle",
+            "1,2",
+            "--box",
+            "1,2,3,4",
+            "--variables",
+            "foo,bar",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Local files (2)" in result.output
+    assert "- file_01.nc" in result.output
+    assert "- file_02.nc" in result.output
+
+    mocked_get.assert_called_once_with(
+        product_short_name="AVISO-SWOT",
+        output_dir=tmp_path,
+        version="1.0",
+        cycle_number=[1, 2],
+        pass_number=None,
+        selected_variables=["foo", "bar"],
+        box=(1, 2, 3, 4),
+        time=(None, None),
+        overwrite=False,
+    )
+
+
+def test_subset_bad_product(tmp_path):
+    result = runner.invoke(app, ["subset", "bad_product", "--output", str(tmp_path)])
+    assert result.exit_code != 0
+    assert (
+        "Invalid value: 'bad_product' doesn't " "exist in Aviso catalog."
+    ) in result.output
+
+
 @pytest.mark.parametrize(
     "filter_infos, additional",
     [

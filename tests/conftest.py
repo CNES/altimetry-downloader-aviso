@@ -257,6 +257,11 @@ def patch_all(mocker):
     )
 
     mocker.patch(
+        "altimetry_downloader_aviso.core.TDS_LAYOUT_CONFIG",
+        Path(__file__).parent / "resources" / "tds_layout.yaml",
+    )
+
+    mocker.patch(
         (
             "altimetry_downloader_aviso.catalog_client.granule_discoverer"
             ".TDS_CATALOG_BASE_URL"

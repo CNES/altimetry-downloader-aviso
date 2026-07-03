@@ -4,11 +4,13 @@ products:
     short_name: sample_product_a
     data_type: TEST_TYPE
     catalog_path: productA_path
+    subset: True
 
   productB:
     short_name: sample_product_b
     data_type: TEST_TYPE
     catalog_path: productB_path
+    subset: False
     filters:
       cycle_number: 4
 
@@ -16,11 +18,13 @@ products:
     short_name: sample_product_c
     data_type: TEST_TYPE_2
     catalog_path: productC_path
+    subset: False
 
   productD:
     short_name: sample_product_d
     data_type: TEST_TYPE_3
     catalog_path: productC_path
+    subset: False
     filters:
       subset: foo
 

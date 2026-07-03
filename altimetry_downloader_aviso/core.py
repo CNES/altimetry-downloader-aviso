@@ -4,15 +4,18 @@ import pathlib as pl
 import typing as tp
 
 import numpy as np
+import yaml
 
 from .auth import AuthenticationError, ensure_credentials
 from .catalog_client.client import (
     Protocol,
     fetch_catalog,
     get_details,
+    get_product_from_short_name,
     search_granules,
 )
 from .catalog_client.geonetwork import AvisoCatalog, AvisoProduct
+from .catalog_client.granule_discoverer import TDS_LAYOUT_CONFIG
 from .subset import subset_multiple_files
 from .tds_client import TDS_HOST, http_bulk_download
 
@@ -144,11 +147,44 @@ def subset(
     selected_variables
         List of variables to select.
 
+    Raises
+    ------
+    NotImplementedError
+        In case the input product does not support subsetting: only swath datasets on a
+        (num_lines, num_pixels) grid are supported.
+
+    Warns
+    -----
+    UserWarning
+        If a granule download failed.
+    UserWarning
+        If a granule listed in the TDS catalog does not expose a valid OpenDAP URL.
+
     Returns
     -------
         The list of subsetted local file paths and local files matching the request that
         were already present.
     """
+    # Trigger short name verification before checking if subset is enabled for the
+    # dataset. This should emit a better error message for the user.
+    get_product_from_short_name(product_short_name)
+
+    logger.debug("Loading list of products supporting subsetting feature")
+    with open(TDS_LAYOUT_CONFIG, encoding="utf-8") as f:
+        tds_layout = yaml.safe_load(f)
+        authorized_products = [
+            product["short_name"]
+            for product in tds_layout["products"].values()
+            if product["subset"]
+        ]
+
+    if product_short_name not in authorized_products:
+        msg = (
+            f"Subsetting for product {product_short_name} is not supported. List of "
+            f"supported products: {authorized_products}"
+        )
+        raise NotImplementedError(msg)
+
     filters = dict(
         filter(
             lambda item: item[1] is not None,

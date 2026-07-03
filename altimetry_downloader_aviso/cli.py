@@ -357,6 +357,10 @@ def subset(
     """Subset a product from Aviso's Thredds Data Server for a given area and
     variables.
 
+    Disclaimer: this is an experimental implementation relying on DAP2 protocol that
+    may be subject to changes in the future. Only SWOT datasets swath on a
+    (num_lines, num_pixels) grid are supported.
+
     Example : subset SWOT_L3_LR_SSH_Unsmoothed --output tmp_dir
     --cycle 7,8 --pass 12-14,21 --version 3.0
     """

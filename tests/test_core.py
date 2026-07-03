@@ -68,7 +68,6 @@ def test_details():
                 "dataset_03_33.nc",
             ],
         ),
-        ("sample_product_b", {}, ["dataset_04_04.nc", "dataset_04_44.nc"]),
     ],
 )
 @pytest.mark.parametrize("command", [get, subset])
@@ -86,7 +85,7 @@ def test_subset_parameters_passed(tmp_path):
         "altimetry_downloader_aviso.subset.subset_one_file", return_value=True
     ) as mock:
         subset(
-            "sample_product_b",
+            "sample_product_a",
             tmp_path,
             selected_variables=["foo", "bar"],
             box=(1, 1, 2, 2),
@@ -123,6 +122,15 @@ def test_get_subset_invalid_product(tmp_path, command):
         command(product_short_name="bad_short_name", output_dir=tmp_path)
 
 
+def test_subset_unsupported_product(tmp_path):
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        files = subset("sample_product_a", tmp_path)
+        assert len(files) > 0
+
+    with pytest.raises(NotImplementedError, match="not supported"):
+        subset("sample_product_b", tmp_path)
+
+
 @pytest.mark.parametrize("command", [get, subset])
 def test_get_subset_invalid_filter(tmp_path, command):
     with pytest.raises(TypeError, match="unexpected keyword"):
@@ -156,7 +164,7 @@ def test_get_subset_auth_error(mocker, tmp_path, caplog, command):
             },
         ),
         ("sample_product_a", {"cycle_number": 2, "pass_number": 3}),
-        ("sample_product_b", {"pass_number": 55}),
+        ("sample_product_a", {"pass_number": 55}),
     ],
 )
 @pytest.mark.parametrize("command", [get, subset])
