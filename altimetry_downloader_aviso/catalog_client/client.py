@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 import os
+import typing as tp
 
 import requests
 import yaml
@@ -13,6 +16,9 @@ from .geonetwork import (
     parse_product_response,
 )
 from .granule_discoverer import TDS_LAYOUT_CONFIG, Protocol, filter_granules
+
+if tp.TYPE_CHECKING:
+    import pandas as pda_t
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +70,7 @@ def get_details(product_short_name: str) -> AvisoProduct:
 
 def search_granules(
     product_short_name: str, protocol: Protocol.HTTP, **filters
-) -> list[str]:
+) -> pda_t.Series[str]:
     """Search for granules of a product in AVISO's Thredds Data Server.
 
     Parameters

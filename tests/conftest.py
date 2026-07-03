@@ -291,7 +291,8 @@ def mock_tds_catalog(mocker):
     def _get_dataset(path: str, nc: str, nb: str):
         mock_dataset = mocker.Mock()
         mock_dataset.access_urls = {
-            "HTTPServer": f"https://tds.mock{path}/dataset_{nc:0>2d}_{nb:0>2d}.nc"
+            "HTTPServer": f"https://tds.mock{path}/dataset_{nc:0>2d}_{nb:0>2d}.nc",
+            "OPeNDAP": f"https://tds.mock{path}/dataset_{nc:0>2d}_{nb:0>2d}.nc",
         }
         return mock_dataset
 

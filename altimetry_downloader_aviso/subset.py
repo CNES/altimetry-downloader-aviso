@@ -1,3 +1,27 @@
+"""Subsetting utilities.
+
+Will handle robust subsetting via DAP2 for SWOT products under the
+swath. Subsetting can help reduce the bandwidth usage by reducing the
+downloaded swaths on the server side.
+
+The requested data is uncompressed by the server before being cropped
+and sent over the network. xarray uses the "Accept-Encoding: gzip, zstd,
+deflate" header, so it is up to the server to apply a compression over
+the HTTP layer (the binary stream via OpenDAP will NOT be compressed
+using the original Netcdf compressors). However the server is
+configured, selecting a subset of variables and an area of interest
+should still be advantageous and reduce the bandwidth usage.
+
+In addition, subsetting the Netcdf can only be done by giving slices
+over dimensions. Because the swath grid is NOT in a zonal/meridional
+frame, we must convert the requested box in slices using the
+longitude/latitude coordinates. SWOT_L3_LR_SSH_Unsmoothed coordinates
+can be big in size (num_lines, num_pixels) ~= (80000, 519), so we use
+the fact "1 granule = 1 half orbit" and "latitudes are monotoneous in 1
+half orbit" to setup an efficient algorithm for geographical selection
+(efficient = minimizing the slices of the requested coordinates).
+"""
+
 import logging
 import time
 import warnings
