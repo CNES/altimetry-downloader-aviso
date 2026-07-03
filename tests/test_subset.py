@@ -65,16 +65,12 @@ def dap_dataset(
 
     num_pixels = 10
 
-    latitudes = np.reshape(
-        np.repeat(np.concatenate([np.arange(-10, 11), np.arange(20, 41)]), num_pixels),
-        (42, num_pixels),
-    )
-    longitudes = np.reshape(
-        np.repeat(
-            np.concatenate([np.arange(-10, 11), np.arange(170, 191)]), num_pixels
-        ),
-        (42, num_pixels),
-    )
+    latitudes = np.repeat(
+        np.concatenate([np.arange(-10, 11), np.arange(20, 41)]), num_pixels
+    ).reshape(42, num_pixels)
+    longitudes = np.repeat(
+        np.concatenate([np.arange(-10, 11), np.arange(170, 191)]), num_pixels
+    ).reshape(42, num_pixels)
     if request.param == 1:
         longitudes[longitudes < 0] += 360
     elif request.param == 2:
