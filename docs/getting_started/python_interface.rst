@@ -101,9 +101,10 @@ Subset a product using :func:`altimetry_downloader_aviso.subset()` function.
 
 .. code-block:: pycon
 
-    >>> local_files = subset("SWOT_L3_LR_SSH_Basic", box=(-10, 10, 10, 40), selected_variables=["ssha_unfiltered", "time"], output_dir="aviso_dir", cycle_number=1, pass_number=[233, 225, 236], version="3.0")
+    >>> local_files = subset("SWOT_L3_LR_SSH_Basic", box=(-10, 10, 10, 40), selected_variables=["ssha_unfiltered", "time"], output_dir="aviso_dir", cycle_number=1, pass_number=[223, 225, 236], version="3.0")
     >>> print(local_files)
-    ['aviso_dir/SWOT_L3_LR_SSH_Basic_001_236_20230729T150350_20230729T155516_v3.0.nc',]
+    ['aviso_dir/SWOT_L3_LR_SSH_Basic_001_223_20230729T035501_20230729T044628_v3.0.nc',
+     'aviso_dir/SWOT_L3_LR_SSH_Basic_001_236_20230729T150350_20230729T155516_v3.0.nc']
 
 
 Further Reading

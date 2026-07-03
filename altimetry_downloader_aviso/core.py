@@ -185,6 +185,9 @@ def subset(
         )
         raise NotImplementedError(msg)
 
+    output_dir = pl.Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     filters = dict(
         filter(
             lambda item: item[1] is not None,
