@@ -234,6 +234,7 @@ in order to find the track falling in a given area.
         * L4_with_SWOT
         * SWOT_L3_LR_WIND_WAVE_Light
         * SWOT_L3_LR_WIND_WAVE_Extended
+        * SWOT_L2_LR_SSH_Unsmoothed
 
 **Example**
 

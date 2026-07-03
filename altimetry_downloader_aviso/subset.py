@@ -160,7 +160,7 @@ def subset_one_file(
     if len(missing_variables) > 0:
         msg = (
             f"Variables {missing_variables} are missing from the dataset. Variables"
-            " present in dataset: {set(ds.variables)}"
+            f" present in dataset: {set(ds.variables)}"
         )
         raise ValueError(msg)
 

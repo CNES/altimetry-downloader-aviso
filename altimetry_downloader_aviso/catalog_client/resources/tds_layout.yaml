@@ -56,7 +56,7 @@ products:
     short_name: SWOT_L2_LR_SSH_Unsmoothed
     data_type: SWOT_L2_LR_SSH
     catalog_path: dataset-l2-swot-karin-lr-ssh-validated
-    subset: True
+    subset: False
     filters:
       subset: Unsmoothed
 
