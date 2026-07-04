@@ -234,12 +234,12 @@ def _search_granules_with_overwrite(
 
     if not overwrite:
         granule_paths = [g for g, e in zip(granule_paths, exist) if not e]
-        target_local_files = [f.as_posix() for f, e in zip(local_files, exist) if not e]
-        non_target_local_files = [f.as_posix() for f, e in zip(local_files, exist) if e]
+        target_local_files = [str(f) for f, e in zip(local_files, exist) if not e]
+        non_target_local_files = [str(f) for f, e in zip(local_files, exist) if e]
         logger.debug("%d files already exist and will be kept.", sum(exist))
     else:
         logger.debug("%d files already exist and will be overwritten.", sum(exist))
-        target_local_files = [f.as_posix() for f in local_files]
+        target_local_files = [str(f) for f in local_files]
         non_target_local_files = []
 
     return granule_paths, target_local_files, non_target_local_files
