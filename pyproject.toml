@@ -17,6 +17,11 @@ dependencies = [
     "pyyaml",
     "pydantic",
     "xarray",
+    "netCDF4",
+    # H5netcdf used for writing netcdf files. netcdf4 not yet compatible with numpy
+    # 2.5.0. It is possible to remove this dependency when the deprecation has been
+    # processed in netcdf4
+    "h5netcdf",
 ]
 authors = [
     {name = "Robin Chevrier", email = "rchevrier@groupcls.com"},

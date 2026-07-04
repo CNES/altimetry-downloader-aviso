@@ -49,7 +49,7 @@ def test_subset_one_file_bad_dataset(
     nc_file_in = tmp_path_factory.mktemp("files") / "file_in.nc"
     nc_file_out = tmp_path_factory.mktemp("files") / "file_out.nc"
 
-    dataset.to_netcdf(nc_file_in)
+    dataset.to_netcdf(nc_file_in, engine="h5netcdf")
 
     with context:
         subset_one_file(
@@ -65,12 +65,16 @@ def dap_dataset(
 
     num_pixels = 10
 
-    latitudes = np.repeat(
-        np.concatenate([np.arange(-10, 11), np.arange(20, 41)]), num_pixels
-    ).reshape(42, num_pixels)
-    longitudes = np.repeat(
-        np.concatenate([np.arange(-10, 11), np.arange(170, 191)]), num_pixels
-    ).reshape(42, num_pixels)
+    latitudes = np.reshape(
+        np.repeat(np.concatenate([np.arange(-10, 11), np.arange(20, 41)]), num_pixels),
+        [42, num_pixels],
+    )
+    longitudes = np.reshape(
+        np.repeat(
+            np.concatenate([np.arange(-10, 11), np.arange(170, 191)]), num_pixels
+        ),
+        [42, num_pixels],
+    )
     if request.param == 1:
         longitudes[longitudes < 0] += 360
     elif request.param == 2:
@@ -86,7 +90,7 @@ def dap_dataset(
             varB=(("num_lines", "num_pixels"), np.ones_like(latitudes)),
         ),
     )
-    ds.to_netcdf(nc_file_in)
+    ds.to_netcdf(nc_file_in, engine="h5netcdf")
     return nc_file_in
 
 

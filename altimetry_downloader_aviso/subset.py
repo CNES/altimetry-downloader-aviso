@@ -182,7 +182,15 @@ def subset_one_file(
             ds[v].encoding |= {"zlib": True, "complevel": 5, "contiguous": False}
 
     logger.debug("Downloading %s (%.2f MiB)", dap2_url, ds.nbytes / 1024**2)
-    ds.to_netcdf(output_file, mode="w")
+    with warnings.catch_warnings():
+        # L3_LR_SSH does not define fill values for the coordinates longitude/latitude
+        # and trigger a Serialization warning that we can safely ignore (they should be
+        # no invalid in the coordinates)
+        warnings.simplefilter("ignore", category=xr.SerializationWarning)
+
+        # Use h5netcdf backend: numpy 2.5.0 deprecates shape assignment, and netcdf4
+        # emits a DeprecationWarning because of this (comment date: 2026/07/04)
+        ds.to_netcdf(output_file, engine="h5netcdf", mode="w")
     return True
 
 
