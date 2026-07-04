@@ -252,7 +252,7 @@ def _load_product_handler(
     # Build TDS catalog URL
     tds_url = urljoin(
         TDS_CATALOG_BASE_URL,
-        str(Path(product_config.catalog_path) / "catalog.xml"),
+        (Path(product_config.catalog_path) / "catalog.xml").as_posix(),
     )
 
     # Root node of the TDS. The node name (not the URL) should be given as an argument,
