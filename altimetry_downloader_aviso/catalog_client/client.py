@@ -23,7 +23,7 @@ if tp.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Keep the leading / to join url with urlib.parse.urljoin
+# Keep the trailing / to join url with urlib.parse.urljoin
 AVISO_CATALOG_URL = "https://sextant.ifremer.fr/geonetwork/srv/api/"
 
 
