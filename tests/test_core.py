@@ -77,7 +77,7 @@ def test_get_subset(tmp_path, short_name, filters, files, command):
             product_short_name=short_name, output_dir=tmp_path, **filters
         )
 
-    assert local_files == [(tmp_path / f).absolute() for f in files]
+    assert local_files == [str(tmp_path / f) for f in files]
 
 
 def test_subset_parameters_passed(tmp_path):
@@ -113,7 +113,7 @@ def test_get_subset_overwrite(tmp_path, command):
 
         filters["overwrite"] = True
         local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)
-        assert set(local_files) == {(tmp_path / f).absolute() for f in files2 + files3}
+        assert set(local_files) == {str(tmp_path / f) for f in files2 + files3}
 
 
 @pytest.mark.parametrize("command", [get, subset])
