@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import typing as tp
+import urllib.parse
 from pathlib import Path
 
 import requests
@@ -22,7 +23,8 @@ if tp.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-AVISO_CATALOG_URL = "https://sextant.ifremer.fr/geonetwork/srv/api"
+# Keep the leading / to join url with urlib.parse.urljoin
+AVISO_CATALOG_URL = "https://sextant.ifremer.fr/geonetwork/srv/api/"
 
 
 class InvalidProductError(Exception):
@@ -108,7 +110,7 @@ def get_product_from_short_name(product_short_name: str) -> AvisoProduct:
 
 def _request_catalog() -> dict:
     """Request AVISO's catalog products: filters on CDS-AVISO and SWOT."""
-    url = (Path(AVISO_CATALOG_URL) / "search/records/_search").as_posix()
+    url = urllib.parse.urljoin(AVISO_CATALOG_URL, "search/records/_search")
 
     # Retrieve the list of configured products from the TDS layout declaration. The IDs
     # will be used to restrict the perimeter (aka supported products) of the client.
@@ -132,7 +134,9 @@ def _request_catalog() -> dict:
 
 def _request_product(product_id: str, timeout: float = 10.0):
     """Request AVISO's catalog product details."""
-    url = (Path(AVISO_CATALOG_URL) / "records" / product_id).as_posix()
+    url = urllib.parse.urljoin(
+        AVISO_CATALOG_URL, (Path("records") / product_id).as_posix()
+    )
 
     try:
         resp = requests.get(
