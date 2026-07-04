@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-import os
 import typing as tp
+from pathlib import Path
 
 import requests
 import yaml
@@ -108,7 +108,7 @@ def get_product_from_short_name(product_short_name: str) -> AvisoProduct:
 
 def _request_catalog() -> dict:
     """Request AVISO's catalog products: filters on CDS-AVISO and SWOT."""
-    url = os.path.join(AVISO_CATALOG_URL, "search/records/_search")
+    url = (Path(AVISO_CATALOG_URL) / "search/records/_search").as_posix()
 
     # Retrieve the list of configured products from the TDS layout declaration. The IDs
     # will be used to restrict the perimeter (aka supported products) of the client.
@@ -132,7 +132,7 @@ def _request_catalog() -> dict:
 
 def _request_product(product_id: str, timeout: float = 10.0):
     """Request AVISO's catalog product details."""
-    url = os.path.join(AVISO_CATALOG_URL, "records", product_id)
+    url = (Path(AVISO_CATALOG_URL) / "records" / product_id).as_posix()
 
     try:
         resp = requests.get(
