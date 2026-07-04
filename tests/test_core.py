@@ -2,11 +2,12 @@ import logging
 import netrc
 import os
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 
 from altimetry_downloader_aviso.catalog_client.client import InvalidProductError
-from altimetry_downloader_aviso.core import details, get, summary
+from altimetry_downloader_aviso.core import details, get, subset, summary
 
 
 def test_summary():
@@ -67,51 +68,88 @@ def test_details():
                 "dataset_03_33.nc",
             ],
         ),
-        ("sample_product_b", {}, ["dataset_04_04.nc", "dataset_04_44.nc"]),
     ],
 )
-def test_get(tmp_path, short_name, filters, files):
-    local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)
+@pytest.mark.parametrize("command", [get, subset])
+def test_get_subset(tmp_path, short_name, filters, files, command):
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        local_files = command(
+            product_short_name=short_name, output_dir=tmp_path, **filters
+        )
 
     assert local_files == [os.path.join(tmp_path, f) for f in files]
 
 
-def test_get_overwrite(tmp_path):
-    short_name = "sample_product_a"
-    filters = {"cycle_number": 2, "overwrite": False}
-    files2 = ["dataset_02_02.nc", "dataset_02_22.nc"]
-    local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)
-    assert local_files == [os.path.join(tmp_path, f) for f in files2]
+def test_subset_parameters_passed(tmp_path):
+    with patch(
+        "altimetry_downloader_aviso.subset.subset_one_file", return_value=True
+    ) as mock:
+        subset(
+            "sample_product_a",
+            tmp_path,
+            selected_variables=["foo", "bar"],
+            box=(1, 1, 2, 2),
+        )
 
-    filters = {"cycle_number": [2, 3], "overwrite": False}
-    files3 = ["dataset_03_03.nc", "dataset_03_33.nc"]
-    local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)
-    assert local_files == [os.path.join(tmp_path, f) for f in files2 + files3]
-
-    filters["overwrite"] = True
-    local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)
-    assert local_files == [os.path.join(tmp_path, f) for f in files2 + files3]
+    assert mock.call_args[0][2] == (1, 1, 2, 2)
+    assert mock.call_args[0][3] == ["foo", "bar"]
 
 
-def test_get_error(tmp_path):
+@pytest.mark.parametrize("command", [get, subset])
+def test_get_subset_overwrite(tmp_path, command):
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        short_name = "sample_product_a"
+        filters = {"cycle_number": 2, "overwrite": False}
+        files2 = ["dataset_02_02.nc", "dataset_02_22.nc"]
+        local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)
+        assert set(local_files) == {os.path.join(tmp_path, f) for f in files2}
+
+        filters = {"cycle_number": [2, 3], "overwrite": False}
+        files3 = ["dataset_03_03.nc", "dataset_03_33.nc"]
+        local_files = command(
+            product_short_name=short_name, output_dir=tmp_path, **filters
+        )
+        assert set(local_files) == {os.path.join(tmp_path, f) for f in files2 + files3}
+
+        filters["overwrite"] = True
+        local_files = get(product_short_name=short_name, output_dir=tmp_path, **filters)
+        assert set(local_files) == {os.path.join(tmp_path, f) for f in files2 + files3}
+
+
+@pytest.mark.parametrize("command", [get, subset])
+def test_get_subset_invalid_product(tmp_path, command):
     with pytest.raises(InvalidProductError):
-        get(product_short_name="bad_short_name", output_dir=tmp_path)
-    with pytest.raises(TypeError):
-        get(
+        command(product_short_name="bad_short_name", output_dir=tmp_path)
+
+
+def test_subset_unsupported_product(tmp_path):
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        files = subset("sample_product_a", tmp_path)
+        assert len(files) > 0
+
+    with pytest.raises(NotImplementedError, match="not supported"):
+        subset("sample_product_b", tmp_path)
+
+
+@pytest.mark.parametrize("command", [get, subset])
+def test_get_subset_invalid_filter(tmp_path, command):
+    with pytest.raises(TypeError, match="unexpected keyword"):
+        command(
             product_short_name="sample_product_a",
             output_dir=tmp_path,
             other_filter="bad",
         )
 
 
-def test_get_auth_error(mocker, tmp_path, caplog):
+@pytest.mark.parametrize("command", [get, subset])
+def test_get_subset_auth_error(mocker, tmp_path, caplog, command):
     mocker.patch(
         "altimetry_downloader_aviso.auth.netrc.netrc",
         side_effect=netrc.NetrcParseError("Invalid netrc"),
     )
 
     with caplog.at_level(logging.ERROR):
-        get(product_short_name="sample_product_a", output_dir=tmp_path)
+        command(product_short_name="sample_product_a", output_dir=tmp_path)
 
     assert "Syntax error in .netrc file: Invalid netrc" in caplog.text
 
@@ -126,8 +164,9 @@ def test_get_auth_error(mocker, tmp_path, caplog):
             },
         ),
         ("sample_product_a", {"cycle_number": 2, "pass_number": 3}),
-        ("sample_product_b", {"pass_number": 55}),
+        ("sample_product_a", {"pass_number": 55}),
     ],
 )
-def test_get_bad_filter(tmp_path, short_name, filters):
-    assert get(product_short_name=short_name, output_dir=tmp_path, **filters) == []
+@pytest.mark.parametrize("command", [get, subset])
+def test_get_subset_bad_filters(tmp_path, short_name, filters, command):
+    assert command(short_name, tmp_path, **filters) == []

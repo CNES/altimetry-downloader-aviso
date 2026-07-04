@@ -6,6 +6,7 @@ import requests
 
 from altimetry_downloader_aviso.catalog_client.client import (
     InvalidProductError,
+    Protocol,
     _request_catalog,
     _request_product,
     fetch_catalog,
@@ -172,13 +173,13 @@ def test_get_product_from_short_name_error():
     ],
 )
 def test_search_granules(short_name, filters, exp_granules):
-    granules = search_granules(short_name, **filters)
+    granules = search_granules(short_name, Protocol.HTTP, **filters)
     assert list(granules) == exp_granules
 
 
 def test_search_granules_error():
     with pytest.raises(InvalidProductError):
-        search_granules(product_short_name="Bad Product")
+        search_granules("Bad Product", Protocol.HTTP)
 
 
 @pytest.mark.parametrize(
@@ -201,5 +202,5 @@ def test_search_granules_error():
     ],
 )
 def test_search_granules_bad_filter(short_name, filters):
-    granules = search_granules(short_name, **filters)
+    granules = search_granules(short_name, Protocol.HTTP, **filters)
     assert list(granules) == []

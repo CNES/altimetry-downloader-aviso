@@ -4,6 +4,7 @@ products:
     short_name: SWOT_L3_LR_SSH_Basic
     data_type: SWOT_L3_LR_SSH
     catalog_path: dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/
+    subset: True
     filters:
       version: '3.0'
       subset: Basic
@@ -12,6 +13,7 @@ products:
     short_name: SWOT_L3_LR_SSH_Expert
     data_type: SWOT_L3_LR_SSH
     catalog_path: dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/
+    subset: True
     filters:
       version: '3.0'
       subset: Expert
@@ -20,6 +22,7 @@ products:
     short_name: SWOT_L3_LR_SSH_Technical
     data_type: SWOT_L3_LR_SSH
     catalog_path: dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/
+    subset: True
     filters:
       version: '3.0'
       subset: Technical
@@ -28,6 +31,7 @@ products:
     short_name: SWOT_L3_LR_SSH_Unsmoothed
     data_type: SWOT_L3_LR_SSH
     catalog_path: dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/
+    subset: True
     filters:
       version: '2.0.1'
       subset: Unsmoothed
@@ -36,6 +40,7 @@ products:
     short_name: SWOT_L2_LR_SSH_Basic
     data_type: SWOT_L2_LR_SSH
     catalog_path: dataset-l2-swot-karin-lr-ssh-validated
+    subset: True
     filters:
       subset: Basic
 
@@ -43,6 +48,7 @@ products:
     short_name: SWOT_L2_LR_SSH_Expert
     data_type: SWOT_L2_LR_SSH
     catalog_path: dataset-l2-swot-karin-lr-ssh-validated
+    subset: True
     filters:
       subset: Expert
 
@@ -50,6 +56,7 @@ products:
     short_name: SWOT_L2_LR_SSH_Unsmoothed
     data_type: SWOT_L2_LR_SSH
     catalog_path: dataset-l2-swot-karin-lr-ssh-validated
+    subset: False
     filters:
       subset: Unsmoothed
 
@@ -57,6 +64,7 @@ products:
     short_name: SWOT_L2_LR_SSH_WindWave
     data_type: SWOT_L2_LR_SSH
     catalog_path: dataset-l2-swot-karin-lr-ssh-validated
+    subset: True
     filters:
       subset: WindWave
 
@@ -64,6 +72,7 @@ products:
     short_name: SWOT_L3_LR_WIND_WAVE_Light
     data_type: SWOT_L3_LR_WIND_WAVE
     catalog_path: dataset-l3-swot-karin-wind-wave
+    subset: False
     filters:
       subset: Light
 
@@ -71,6 +80,7 @@ products:
     short_name: SWOT_L3_LR_WIND_WAVE_Extended
     data_type: SWOT_L3_LR_WIND_WAVE
     catalog_path: dataset-l3-swot-karin-wind-wave
+    subset: False
     filters:
       subset: Extended
 
@@ -78,6 +88,7 @@ products:
     short_name: L4_with_SWOT
     data_type: SWOT_L4
     catalog_path: dataset-duacs-experimental-dt-phy-grids-nadirs-and-wide-swath
+    subset: False
 
 granule_discovery:
   SWOT_L2_LR_SSH: BasicNetcdfFilesDatabaseSwotLRL2

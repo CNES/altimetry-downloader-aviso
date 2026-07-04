@@ -291,3 +291,103 @@ def get(
             "Please use 'summary' command to get product's short name."
         )
         raise typer.BadParameter(msg)
+
+
+@app.command()
+def subset(
+    product: str = typer.Argument(..., help="Product's short name"),
+    output: Path = typer.Option(..., "--output", "-o", help="Output directory"),
+    overwrite: bool = typer.Option(
+        False,
+        "--overwrite",
+        "-O",
+        help="Overwrite files if they already exist",
+    ),
+    cycle_number: list = typer.Option(
+        None,
+        "--cycle",
+        "-c",
+        help="Cycle number(s). Comma separated values or ranges accepted.",
+        parser=comma_separated_ints,
+    ),
+    pass_number: list = typer.Option(
+        None,
+        "--pass",
+        "-p",
+        help="Pass number(s). Comma separated values or ranges accepted.",
+        parser=comma_separated_ints,
+    ),
+    start: str = typer.Option(None, "--start", help="Start date (YYYY-MM-DD)"),
+    end: str = typer.Option(None, "--end", help="End date (YYYY-MM-DD)"),
+    version: str = typer.Option(
+        None,
+        "--version",
+        "-V",
+        help="Product's version. By default, last version is selected",
+    ),
+    box: list = typer.Option(
+        None,
+        "--box",
+        "-b",
+        help="Area of interest. (lon_min, lat_min, lon_max, lat_max)",
+        parser=lambda box_str: tuple(
+            map(lambda x: float(x.strip()), box_str.split(","))
+        ),
+    ),
+    selected_variables: list = typer.Option(
+        None,
+        "--variables",
+        "-x",
+        help="Variables to download.",
+        parser=lambda variables: [v.strip() for v in variables.split(",")],
+    ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="No logging",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose logging",
+    ),
+):
+    """Subset a product from Aviso's Thredds Data Server for a given area and
+    variables.
+
+    Disclaimer: this is an experimental implementation relying on DAP2 protocol that
+    may be subject to changes in the future. Only SWOT datasets swath on a
+    (num_lines, num_pixels) grid are supported.
+
+    Example : subset SWOT_L3_LR_SSH_Unsmoothed --output tmp_dir
+    --cycle 7,8 --pass 12-14,21 --version 3.0
+    """
+
+    _setup_logging(quiet=quiet, verbose=verbose)
+
+    try:
+        downloaded_files = ac_core.subset(
+            product_short_name=product,
+            output_dir=output,
+            cycle_number=cycle_number if cycle_number else None,
+            pass_number=pass_number if pass_number else None,
+            time=(start, end),
+            version=version,
+            overwrite=overwrite,
+            selected_variables=selected_variables,
+            box=box,
+        )
+
+        console.print(f"[green]Local files ({len(downloaded_files)}) :[/]")
+
+        for file in downloaded_files:
+            console.print(f"- {file}")
+
+    except InvalidProductError:
+        msg = (
+            f"'{product}' doesn't exist in Aviso catalog. "
+            "Please use 'summary' command to get product's short name."
+        )
+        raise typer.BadParameter(msg)

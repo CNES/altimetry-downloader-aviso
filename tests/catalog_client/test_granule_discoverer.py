@@ -4,11 +4,13 @@ import pytest
 from fcollections.time import Period
 from requests.exceptions import ProxyError
 
+from altimetry_downloader_aviso.catalog_client.client import Protocol
 from altimetry_downloader_aviso.catalog_client.geonetwork.models.model import (
     AvisoProduct,
 )
 from altimetry_downloader_aviso.catalog_client.granule_discoverer import (
     ProductLayoutConfig,
+    RemoteDirNode,
     _import_product_handler,
     _parse_tds_layout,
     filter_granules,
@@ -108,14 +110,14 @@ class Test_FileSystemMetadataCollector:
 
 
 def test_filter_granules():
-    urls = filter_granules(AvisoProduct(id="productA"))
+    urls = filter_granules(AvisoProduct(id="productA"), Protocol.HTTP)
     assert list(urls) == [
         "https://tds.mock/productA_path/cycle_02/dataset_02_02.nc",
         "https://tds.mock/productA_path/cycle_02/dataset_02_22.nc",
         "https://tds.mock/productA_path/cycle_03/dataset_03_03.nc",
         "https://tds.mock/productA_path/cycle_03/dataset_03_33.nc",
     ]
-    urls = filter_granules(AvisoProduct(id="productA"), pass_number=3)
+    urls = filter_granules(AvisoProduct(id="productA"), Protocol.HTTP, pass_number=3)
     assert list(urls) == ["https://tds.mock/productA_path/cycle_03/dataset_03_03.nc"]
 
 
@@ -203,3 +205,15 @@ def test_parse_tds_layout_bad_product():
         "tds_layout configuration file.",
     ):
         _parse_tds_layout(AvisoProduct(id="bad_product_id"))
+
+
+def test_bad_access_url_key():
+    node = RemoteDirNode(
+        "cycle_02",
+        {"name": "https://tds.mock/productA_path/cycle_02/catalog.xml"},
+        1,
+        Protocol.HTTP,
+    )
+    node._access_url_key = "bad_url_key"
+    with pytest.warns(UserWarning, match="Cannot retrieve access URL"):
+        node.children()
