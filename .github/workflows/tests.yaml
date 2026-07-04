@@ -14,6 +14,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+
+    env:
+      NO_COLOR: "1"
+      TERM: dumb
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v6
@@ -27,7 +32,7 @@ jobs:
         # Specify environment for cli runner: simplest terminal possible to properly get
         # the error messages in the CI setup
         run: |
-          NO_COLOR=1 TERM=dumb pytest tests --cov=altimetry_downloader_aviso --cov-report=xml:coverage.xml --cov-report=term --cov-fail-under=100
+          pytest tests --cov=altimetry_downloader_aviso --cov-report=xml:coverage.xml --cov-report=term --cov-fail-under=100
       - name: Upload unit test coverage artifacts
         uses: actions/upload-artifact@v4
         with:
