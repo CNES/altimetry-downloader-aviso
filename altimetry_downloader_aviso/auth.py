@@ -74,7 +74,12 @@ def _setup_auth_env():
         requiring authentication.
     """
     for name in sorted(sys.modules):
-        if name.startswith("netCDF"):
+        # Only warn if the environment is not already setup for netCDF4. requests uses
+        # its env var dynamically
+        if name.startswith("netCDF") and (
+            "NCRCENV_RC" not in os.environ
+            or os.environ["NCRCENV_RC"] != NCRC_PATH.as_posix()
+        ):
             msg = (
                 "netCDF4 is already loaded. Authentication configuration may not be "
                 "applied"
