@@ -1,3 +1,4 @@
+import functools
 import logging
 import os
 import pathlib as pl
@@ -21,8 +22,22 @@ from .tds_client import TDS_HOST, Protocol, http_bulk_download
 logger = logging.getLogger(__name__)
 
 
-def authenticate(func):
+def authenticate(func: tp.Callable) -> tp.Callable:
+    """Ensure authentication with the TDS server is setup before calling the
+    input function.
 
+    Parameters
+    ----------
+    func
+        Any high level method that will need authentication with the TDS server.
+
+    Returns
+    -------
+    :
+        The same function, but with the authentication setup automatically called before
+    """
+
+    @functools.wraps(func)
     def wrapped(*args, **kwargs):
         ensure_credentials(TDS_HOST)
         return func(*args, **kwargs)
