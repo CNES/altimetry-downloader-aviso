@@ -1,6 +1,25 @@
 Release Notes
 =============
 
+0.5.0 (2026-07-07)
+------------------
+
+Added a new ``subset`` subcommand to subset granules over the OpenDap protocol. This
+new command should help reduce the bandwidth usage by selecting an area of interest and
+a set of variables to download.
+
+.. important::
+
+    Subsetting support is partial and has not been implemented for all products. Please
+    refer to the subcommand documentation for the exhaustive list of supported products.
+
+Authentication has been reworked to be compatible with the new ``subset`` subcommand. It
+relies on the configuration mechanisms of the netCDF4 and requests libraries. In
+addition, the credential files are now isolated to avoid conflicts with existing user
+configurations. Expect the new version to prompt again for the AVISO credentials.
+
+Compatibility issues with Windows have been addressed. `#1 <https://github.com/CNES/altimetry-downloader-aviso/issues/1>`_.
+
 0.4.0 (2026-06-25)
 ------------------
 
