@@ -12,6 +12,19 @@ from altimetry_downloader_aviso.auth import (
 )
 
 
+def test_netcdf4_import():
+    # netCDF4 must be imported as late as possible. Functions and modules triggering its
+    # import has been moved to a separate module that is imported in a lazy fashion.
+    import sys
+
+    import altimetry_downloader_aviso
+
+    assert "netCDF4" not in sys.modules
+    import altimetry_downloader_aviso.catalog_client._granules_utils
+
+    assert "netCDF4" in sys.modules
+
+
 def test_get_credentials(mocker):
 
     mock_netrc = mocker.patch("altimetry_downloader_aviso.auth.netrc.netrc")
