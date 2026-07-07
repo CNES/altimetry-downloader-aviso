@@ -1,11 +1,10 @@
-import logging
-import netrc
 import os
 from datetime import datetime
 from unittest.mock import patch
 
 import pytest
 
+from altimetry_downloader_aviso.auth import AuthenticationError
 from altimetry_downloader_aviso.catalog_client.client import InvalidProductError
 from altimetry_downloader_aviso.core import details, get, subset, summary
 
@@ -142,16 +141,14 @@ def test_get_subset_invalid_filter(tmp_path, command):
 
 
 @pytest.mark.parametrize("command", [get, subset])
-def test_get_subset_auth_error(mocker, tmp_path, caplog, command):
+def test_get_subset_auth_error(mocker, tmp_path, command):
     mocker.patch(
-        "altimetry_downloader_aviso.auth.netrc.netrc",
-        side_effect=netrc.NetrcParseError("Invalid netrc"),
+        "altimetry_downloader_aviso.core.ensure_credentials",
+        side_effect=AuthenticationError("Invalid netrc"),
     )
 
-    with caplog.at_level(logging.ERROR):
+    with pytest.raises(AuthenticationError):
         command(product_short_name="sample_product_a", output_dir=tmp_path)
-
-    assert "Syntax error in .netrc file: Invalid netrc" in caplog.text
 
 
 @pytest.mark.parametrize(

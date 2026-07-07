@@ -19,10 +19,8 @@ from fcollections.time import Period
 from requests.exceptions import ProxyError
 
 import altimetry_downloader_aviso.auth
-from altimetry_downloader_aviso.catalog_client.granule_discoverer import (
-    Protocol,
-    RemoteDirNode,
-)
+from altimetry_downloader_aviso.catalog_client._granules_utils import RemoteDirNode
+from altimetry_downloader_aviso.catalog_client.granule_discoverer import Protocol
 
 # PATCH GEONETWORK CATALOG RESPONSES
 
@@ -248,26 +246,28 @@ def patch_all(mocker):
     setattr(fcollections.implementations, "MyDatabase2", MyDatabase2)
     setattr(fcollections.implementations, "MyDatabase3", MyDatabase3)
 
-    mocker.patch(
-        (
-            "altimetry_downloader_aviso.catalog_client.granule_discoverer"
-            ".TDS_LAYOUT_CONFIG"
-        ),
-        Path(__file__).parent / "resources" / "tds_layout.yaml",
-    )
-
-    mocker.patch(
+    for x in [
+        "altimetry_downloader_aviso.catalog_client._granules_utils.TDS_LAYOUT_CONFIG",
+        "altimetry_downloader_aviso.catalog_client.client.TDS_LAYOUT_CONFIG",
+        "altimetry_downloader_aviso.tds_client.TDS_LAYOUT_CONFIG",
         "altimetry_downloader_aviso.core.TDS_LAYOUT_CONFIG",
-        Path(__file__).parent / "resources" / "tds_layout.yaml",
-    )
+    ]:
+        mocker.patch(x, Path(__file__).parent / "resources" / "tds_layout.yaml")
 
-    mocker.patch(
+    for x in [
+        "altimetry_downloader_aviso.tds_client.TDS_CATALOG_BASE_URL",
         (
-            "altimetry_downloader_aviso.catalog_client.granule_discoverer"
-            ".TDS_CATALOG_BASE_URL"
+            "altimetry_downloader_aviso.catalog_client._granules_utils."
+            "TDS_CATALOG_BASE_URL"
         ),
-        "https://tds.mock/",
-    )
+    ]:
+        mocker.patch(x, "https://tds.mock/")
+
+    for x in [
+        "altimetry_downloader_aviso.auth.ensure_credentials",
+        "altimetry_downloader_aviso.core.ensure_credentials",
+    ]:
+        mocker.patch(x)
 
 
 # PATCH TDS CATALOG CONTENT
@@ -378,7 +378,7 @@ def mock_tds_catalog(mocker):
             )
 
     mocker.patch(
-        "altimetry_downloader_aviso.catalog_client.granule_discoverer.TDSCatalog",
+        "altimetry_downloader_aviso.catalog_client._granules_utils.TDSCatalog",
         side_effect=tds_catalog_side_effect,
     )
 
@@ -393,4 +393,11 @@ def fake_netrc_path(tmp_path, mocker):
         machine tds-odatis.aviso.altimetry.fr login testuser password testpass
     """
     )
+    return path
+
+
+@pytest.fixture(autouse=True)
+def fake_ncrc_path(tmp_path, mocker):
+    path = tmp_path / ".ncrc"
+    mocker.patch.object(altimetry_downloader_aviso.auth, "NCRC_PATH", path)
     return path

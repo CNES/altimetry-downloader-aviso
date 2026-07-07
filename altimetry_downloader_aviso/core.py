@@ -1,3 +1,4 @@
+import functools
 import logging
 import os
 import pathlib as pl
@@ -6,20 +7,41 @@ import typing as tp
 import numpy as np
 import yaml
 
-from .auth import AuthenticationError, ensure_credentials
+from .auth import ensure_credentials
 from .catalog_client.client import (
-    Protocol,
     fetch_catalog,
     get_details,
     get_product_from_short_name,
     search_granules,
 )
 from .catalog_client.geonetwork import AvisoCatalog, AvisoProduct
-from .catalog_client.granule_discoverer import TDS_LAYOUT_CONFIG
 from .subset import subset_multiple_files
-from .tds_client import TDS_HOST, http_bulk_download
+from .tds_client import TDS_HOST, TDS_LAYOUT_CONFIG, Protocol, http_bulk_download
 
 logger = logging.getLogger(__name__)
+
+
+def authenticate(func: tp.Callable) -> tp.Callable:
+    """Ensure authentication with the TDS server is setup before calling the
+    input function.
+
+    Parameters
+    ----------
+    func
+        Any high level method that will need authentication with the TDS server.
+
+    Returns
+    -------
+    :
+        The same function, but with the authentication setup automatically called before
+    """
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        ensure_credentials(TDS_HOST)
+        return func(*args, **kwargs)
+
+    return wrapped
 
 
 def summary() -> AvisoCatalog:
@@ -47,6 +69,7 @@ def details(product_short_name: str) -> AvisoProduct:
     return get_details(product_short_name)
 
 
+@authenticate
 def get(
     product_short_name: str,
     output_dir: str | pl.Path,
@@ -96,21 +119,17 @@ def get(
 
     logger.debug("Downloading granules: %s...", list(granule_paths))
 
-    try:
-        return (
-            list(
-                http_bulk_download(
-                    urls=granule_paths, output_dir=output_dir, overwrite=overwrite
-                )
+    return (
+        list(
+            http_bulk_download(
+                urls=granule_paths, output_dir=output_dir, overwrite=overwrite
             )
-            + non_target_local_files
         )
-
-    except AuthenticationError as e:
-        logging.error(e)
-        return []
+        + non_target_local_files
+    )
 
 
+@authenticate
 def subset(
     product_short_name: str,
     output_dir: str | pl.Path,
@@ -206,17 +225,12 @@ def subset(
 
     logger.info("Subsetting %d granules...", len(granule_paths))
 
-    try:
-        ensure_credentials(TDS_HOST)
-        return (
-            subset_multiple_files(
-                granule_paths, target_local_files, box, selected_variables
-            )
-            + non_target_local_files
+    return (
+        subset_multiple_files(
+            granule_paths, target_local_files, box, selected_variables
         )
-    except AuthenticationError as e:
-        logging.error(e)
-        return []
+        + non_target_local_files
+    )
 
 
 def _search_granules_with_overwrite(
