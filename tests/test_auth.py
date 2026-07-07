@@ -1,4 +1,5 @@
 import netrc
+import os
 from pathlib import Path
 from unittest.mock import mock_open
 
@@ -30,7 +31,11 @@ def test_netcdf4_import():
     assert "netCDF4" in sys.modules
 
     with pytest.warns(UserWarning):
+        if "NCRCENV_RC" in os.environ:
+            del os.environ["NCRCENV_RC"]
         _setup_auth_env()
+
+    _setup_auth_env()
 
 
 def test_get_credentials(mocker):
