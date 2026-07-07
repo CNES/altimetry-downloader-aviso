@@ -18,11 +18,12 @@ After installation, the ``altimetry-downloader-aviso`` command becomes available
 Available Commands
 ------------------
 
-The command line interface provides three main commands:
+The command line interface provides four main commands and one auxiliary command:
 
 1. **summary** to list available products in the catalog;
 2. **details** to view detailed metadata for a specific product;
 3. **get** to download a given product applying filters, and the associated auxiliary command **help-query** for configuring said filters.
+4. **subset** to download part of a given product applying filters, and the associated auxiliary command **help-query** for configuring said filters.
 
 .. tip::
 
