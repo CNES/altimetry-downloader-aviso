@@ -8,6 +8,7 @@ from pathlib import Path
 import requests
 import yaml
 
+from ..tds_client import TDS_LAYOUT_CONFIG
 from .geonetwork import (
     AvisoCatalog,
     AvisoProduct,
@@ -16,7 +17,7 @@ from .geonetwork import (
     parse_catalog_response,
     parse_product_response,
 )
-from .granule_discoverer import TDS_LAYOUT_CONFIG, Protocol, filter_granules
+from .granule_discoverer import Protocol, filter_granules
 
 if tp.TYPE_CHECKING:
     import pandas as pda_t

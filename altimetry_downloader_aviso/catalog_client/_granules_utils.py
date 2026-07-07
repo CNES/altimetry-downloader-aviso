@@ -18,7 +18,7 @@ from fcollections.core import (
 )
 from siphon.catalog import TDSCatalog
 
-from ..tds_client import Protocol
+from ..tds_client import TDS_CATALOG_BASE_URL, TDS_LAYOUT_CONFIG, Protocol
 from .geonetwork import AvisoProduct
 
 with warnings.catch_warnings():
@@ -31,10 +31,6 @@ if TYPE_CHECKING:
     HalfOrbitRange = tuple[int, int], tuple[int, int]
 
 logger = logging.getLogger(__name__)
-
-TDS_CATALOG_BASE_URL = "https://tds-odatis.aviso.altimetry.fr/thredds/catalog/"
-
-TDS_LAYOUT_CONFIG = Path(__file__).parent / "resources" / "tds_layout.yaml"
 
 
 class GranuleNode(FileNode):

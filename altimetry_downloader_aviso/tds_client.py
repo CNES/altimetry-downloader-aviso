@@ -5,6 +5,7 @@ import time
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum, auto
+from pathlib import Path
 from typing import Generator, Iterable
 
 import requests
@@ -12,6 +13,12 @@ import requests
 logger = logging.getLogger(__name__)
 
 TDS_HOST = "tds-odatis.aviso.altimetry.fr"
+
+TDS_CATALOG_BASE_URL = "https://tds-odatis.aviso.altimetry.fr/thredds/catalog/"
+
+TDS_LAYOUT_CONFIG = (
+    Path(__file__).parent / "catalog_client" / "resources" / "tds_layout.yaml"
+)
 
 
 class Protocol(Enum):
@@ -108,7 +115,7 @@ def http_single_download_with_retries(
     """
     last_exception = None
 
-    for attempt in range(1, 1 + 1):
+    for attempt in range(1, retries + 1):
         try:
             return http_single_download(url, output_dir, overwrite)
 

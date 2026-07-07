@@ -98,29 +98,34 @@ def _validate_ncrc_file():
     """
     NCRC_PATH.parent.mkdir(parents=True, exist_ok=True)
     NCRC_PATH.touch(exist_ok=True, mode=0o600)
-    update = True
+    update = False
 
     with open(NCRC_PATH) as f:
         lines = f.readlines()
 
-    ncrc_entry = f"{_NCRC_KEY}{_NCRC_SEP}{NETRC_PATH.as_posix()}"
+    ncrc_entry = f"{_NCRC_KEY}{_NCRC_SEP}{NETRC_PATH.as_posix()}\n"
     for ii, line in enumerate(lines):
-        split = line.split(_NCRC_SEP)
-        if split[0] == _NCRC_KEY and split[1] == NETRC_PATH.as_posix():
+        split = line.strip().split(_NCRC_SEP)
+        if (
+            split[0] == _NCRC_KEY
+            and len(split) > 1
+            and split[1] == NETRC_PATH.as_posix()
+        ):
             logger.debug("%s entry in %s is up to date.", _NCRC_KEY, NCRC_PATH)
             update = False
-            break
+            return
         elif split[0] == _NCRC_KEY:
             logger.debug("Updating existing %s entry in %s", _NCRC_KEY, NCRC_PATH)
             lines[ii] = ncrc_entry
-            update = False
+            update = True
             break
 
-    if update:
+    if not update:
         logger.debug("Adding new %s entry in %s", _NCRC_KEY, NCRC_PATH)
         lines.append(ncrc_entry)
-        with open(NCRC_PATH, mode="w") as f:
-            f.writelines(lines)
+
+    with open(NCRC_PATH, mode="w") as f:
+        f.writelines(lines)
 
 
 def _get_credentials(host: str) -> tuple[str, str] | None:

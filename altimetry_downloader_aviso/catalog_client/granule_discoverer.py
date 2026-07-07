@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import warnings
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ..tds_client import Protocol
@@ -16,10 +15,6 @@ if TYPE_CHECKING:
     HalfOrbitRange = tuple[int, int], tuple[int, int]
 
 logger = logging.getLogger(__name__)
-
-TDS_CATALOG_BASE_URL = "https://tds-odatis.aviso.altimetry.fr/thredds/catalog/"
-
-TDS_LAYOUT_CONFIG = Path(__file__).parent / "resources" / "tds_layout.yaml"
 
 
 def filter_granules(product: AvisoProduct, protocol: Protocol, **filters) -> list[str]:

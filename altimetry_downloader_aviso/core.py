@@ -15,9 +15,8 @@ from .catalog_client.client import (
     search_granules,
 )
 from .catalog_client.geonetwork import AvisoCatalog, AvisoProduct
-from .catalog_client.granule_discoverer import TDS_LAYOUT_CONFIG
 from .subset import subset_multiple_files
-from .tds_client import TDS_HOST, Protocol, http_bulk_download
+from .tds_client import TDS_HOST, TDS_LAYOUT_CONFIG, Protocol, http_bulk_download
 
 logger = logging.getLogger(__name__)
 

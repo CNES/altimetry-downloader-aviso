@@ -4,15 +4,17 @@ import pytest
 from fcollections.time import Period
 from requests.exceptions import ProxyError
 
+from altimetry_downloader_aviso.catalog_client._granules_utils import (
+    ProductLayoutConfig,
+    RemoteDirNode,
+    _import_product_handler,
+    _parse_tds_layout,
+)
 from altimetry_downloader_aviso.catalog_client.client import Protocol
 from altimetry_downloader_aviso.catalog_client.geonetwork.models.model import (
     AvisoProduct,
 )
 from altimetry_downloader_aviso.catalog_client.granule_discoverer import (
-    ProductLayoutConfig,
-    RemoteDirNode,
-    _import_product_handler,
-    _parse_tds_layout,
     filter_granules,
     filter_infos,
 )
