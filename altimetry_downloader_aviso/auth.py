@@ -14,19 +14,6 @@ _NCRC_SEP = "="
 logger = logging.getLogger(__name__)
 
 
-def setup_auth_env():
-    for name in sorted(sys.modules):
-        if name.startswith("netCDF"):
-            msg = (
-                "netCDF4 is already loaded. Authentication configuration may not be "
-                "applied"
-            )
-            warnings.warn(msg)
-
-    os.environ["NCRCENV_RC"] = NCRC_PATH.as_posix()
-    os.environ["NETRC"] = NETRC_PATH.as_posix()
-
-
 class AuthenticationError(Exception):
     """Exception raised when a problem happened when reading credentials."""
 
@@ -48,12 +35,26 @@ def ensure_credentials(host: str):
     AuthenticationError
         In case an exception happens when reading credentials
     """
+    _setup_auth_env()
     _validate_ncrc_file()
     creds = _get_credentials(host)
     if creds:
         return creds
 
     return _prompt_and_save_credentials(host)
+
+
+def _setup_auth_env():
+    for name in sorted(sys.modules):
+        if name.startswith("netCDF"):
+            msg = (
+                "netCDF4 is already loaded. Authentication configuration may not be "
+                "applied"
+            )
+            warnings.warn(msg)
+
+    os.environ["NCRCENV_RC"] = NCRC_PATH.as_posix()
+    os.environ["NETRC"] = NETRC_PATH.as_posix()
 
 
 def _validate_ncrc_file():
@@ -93,6 +94,7 @@ def _get_credentials(host: str):
         auth_data = netrc.netrc(NETRC_PATH)
         login, _, password = auth_data.authenticators(host)
         if login and password:
+            logger.debug("Retrieved credentials from .netrc")
             return login, password
     except TypeError:
         msg = f"Host {host} doesn't exist in .netrc file."

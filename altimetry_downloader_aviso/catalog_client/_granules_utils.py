@@ -4,7 +4,6 @@ import logging
 import typing as tp
 import warnings
 from dataclasses import dataclass
-from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
@@ -19,6 +18,7 @@ from fcollections.core import (
 )
 from siphon.catalog import TDSCatalog
 
+from ..tds_client import Protocol
 from .geonetwork import AvisoProduct
 
 with warnings.catch_warnings():
@@ -35,21 +35,6 @@ logger = logging.getLogger(__name__)
 TDS_CATALOG_BASE_URL = "https://tds-odatis.aviso.altimetry.fr/thredds/catalog/"
 
 TDS_LAYOUT_CONFIG = Path(__file__).parent / "resources" / "tds_layout.yaml"
-
-
-class Protocol(Enum):
-    """Protocols supported by the TDS server."""
-
-    HTTP = auto()
-    """HTTP request of a granule.
-
-    Used to download the entire file.
-    """
-    DAP2 = auto()
-    """OpenDAP protocol.
-
-    Used to trigger server subsetting of the granule.
-    """
 
 
 class GranuleNode(FileNode):
