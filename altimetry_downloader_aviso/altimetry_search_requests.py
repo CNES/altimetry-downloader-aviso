@@ -1,11 +1,11 @@
-"""Thin wrappers around :mod:`altimetry.search` (the Altimetry Search
-package).
+"""Thin wrappers around :mod:`altimetry.search` (the Altimetry Search package).
 
 Each function here does input/output formatting only, around a single
 Altimetry Search call. Chaining ``selected_passes`` with ``pass_passage_time``
 (i.e. restricting passes to those crossing a bbox) is orchestrated in
 ``core.py::subset``, not here.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -40,15 +40,19 @@ def mission_for(time: tuple[np.datetime64, np.datetime64]) -> Mission:
     start, end = _as_datetime64(time[0]), _as_datetime64(time[1])
     loader = MissionPropertiesLoader()
     matches = [
-        mission for mission in _SWATH_MISSIONS if _covers(loader.load(mission), start, end)
+        mission
+        for mission in _SWATH_MISSIONS
+        if _covers(loader.load(mission), start, end)
     ]
     if len(matches) == 1:
         return matches[0]
-    msg = f"time range {time} does not fall within a single known mission phase (matches: {matches})"
+    msg = f"time range {time} matches no single mission phase (matches: {matches})"
     raise ValueError(msg)
 
 
-def _covers(properties: MissionProperties, start: np.datetime64, end: np.datetime64) -> bool:
+def _covers(
+    properties: MissionProperties, start: np.datetime64, end: np.datetime64
+) -> bool:
     date_start = _as_datetime64(properties.date_start)
     date_end = _as_datetime64(properties.date_end) if properties.date_end else None
     return start >= date_start and (date_end is None or end <= date_end)
@@ -56,16 +60,16 @@ def _covers(properties: MissionProperties, start: np.datetime64, end: np.datetim
 
 def _as_datetime64(value: object) -> np.datetime64:
     """Normalize a date-like value (np.datetime64, datetime.date, str, ...)
-    into an np.datetime64, so comparisons stay robust no matter how
-    Altimetry Search represents ``MissionProperties`` dates."""
+    into an np.datetime64, so comparisons stay robust no matter how Altimetry
+    Search represents ``MissionProperties`` dates."""
     return value if isinstance(value, np.datetime64) else np.datetime64(str(value))
 
 
 def selected_passes(
     time: tuple[np.datetime64, np.datetime64], mission: Mission
 ) -> pd.DataFrame:
-    """Wrap ``get_selected_passes``: turns a ``(start, end)`` time filter
-    into its ``(date, search_duration)`` signature.
+    """Wrap ``get_selected_passes``: turns a ``(start, end)`` time filter into
+    its ``(date, search_duration)`` signature.
 
     Raises
     ------
