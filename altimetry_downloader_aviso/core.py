@@ -7,6 +7,7 @@ import typing as tp
 import numpy as np
 import yaml
 
+from . import altimetry_search_requests as altisearch
 from .auth import ensure_credentials
 from .catalog_client.client import (
     fetch_catalog,
@@ -19,6 +20,104 @@ from .subset import subset_multiple_files
 from .tds_client import TDS_HOST, TDS_LAYOUT_CONFIG, Protocol, http_bulk_download
 
 logger = logging.getLogger(__name__)
+
+#: Sentinel returned by _resolve_selected_passes when no `time` filter was
+#: given, to distinguish from "time given but nothing matched" (None).
+_NO_TIME_FILTER = object()
+
+
+def _log_passes(step: str, mission: tp.Any, passes: tp.Any) -> None:
+    """Debug-log an Altimetry Search result: cycles/passes involved."""
+    logger.debug(
+        "Altimetry Search %s: mission=%s, %d pass(es), cycle_number=%s, "
+        "pass_number=%s",
+        step,
+        mission,
+        len(passes),
+        sorted(passes["cycle_number"].unique().tolist())
+        if "cycle_number" in passes
+        else "n/a",
+        sorted(passes["pass_number"].unique().tolist()),
+    )
+
+
+def _resolve_selected_passes(
+    filters: dict[str, tp.Any],
+) -> tuple[altisearch.Mission, tp.Any] | None | object:
+    """Pop the `time` filter and resolve it into the passes it covers.
+
+    If `time` matches no pass but `cycle_number`/`pass_number` were also
+    given, those are kept as-is (with a warning) instead of emptying the
+    result.
+
+    Returns
+    -------
+        `_NO_TIME_FILTER` if no `time` filter was given, or if it matched
+        nothing but explicit cycle_number/pass_number filters remain to
+        fall back on. `None` if `time` was given, matched nothing, and
+        there is no fallback. Else `(mission, passes)`.
+    """
+    if "time" not in filters:
+        return _NO_TIME_FILTER
+
+    time = filters.pop("time")
+    mission = altisearch.mission_for(time)
+    try:
+        passes = altisearch.selected_passes(time, mission)
+    except altisearch.NoPassFoundError as err:
+        if "cycle_number" in filters or "pass_number" in filters:
+            logger.warning(
+                "time filter matched no pass (%s); ignoring it and keeping "
+                "the explicit cycle_number/pass_number filters.",
+                err,
+            )
+            return _NO_TIME_FILTER
+        logger.info("%s", err)
+        return None
+    _log_passes("selected_passes", mission, passes)
+    return mission, passes
+
+
+def _overlaps(explicit: int | list[int] | None, resolved: list[int]) -> bool:
+    """True if `explicit` (None = no constraint on that filter) intersects
+    `resolved`."""
+    if explicit is None:
+        return True
+    values = explicit if isinstance(explicit, list) else [explicit]
+    return bool(set(values) & set(resolved))
+
+
+def _apply_selected_passes(filters: dict[str, tp.Any], passes: tp.Any) -> None:
+    """Merge resolved passes into filters.
+
+    If `cycle_number`/`pass_number` were given explicitly and don't overlap
+    the passes resolved from `time` at all, they are kept as-is (`time` is
+    ignored, with a warning) instead of being overridden by an
+    empty/unrelated selection.
+    """
+    granule_filters = altisearch.as_granule_filters(passes)
+    explicit_cycle = filters.get("cycle_number")
+    explicit_pass = filters.get("pass_number")
+
+    if explicit_cycle is not None or explicit_pass is not None:
+        if not _overlaps(
+            explicit_cycle, granule_filters["cycle_number"]
+        ) or not _overlaps(explicit_pass, granule_filters["pass_number"]):
+            logger.warning(
+                "time filter matches no pass among the explicit "
+                "cycle_number=%s/pass_number=%s; ignoring time and keeping "
+                "those filters as-is.",
+                explicit_cycle,
+                explicit_pass,
+            )
+            return
+        logger.warning(
+            "Ignoring explicit cycle_number/pass_number filters: overridden "
+            "by the time filter resolved through Altimetry Search."
+        )
+
+    logger.debug("Altimetry Search resolved granule filters: %s", granule_filters)
+    filters.update(granule_filters)
 
 
 def authenticate(func: tp.Callable) -> tp.Callable:
@@ -112,6 +211,13 @@ def get(
             ),
         )
     )
+
+    resolved = _resolve_selected_passes(filters)
+    if resolved is None:
+        return []
+    if resolved is not _NO_TIME_FILTER:
+        _, passes = resolved
+        _apply_selected_passes(filters, passes)
 
     granule_paths, _, non_target_local_files = _search_granules_with_overwrite(
         product_short_name, Protocol.HTTP, output_dir, overwrite, **filters
@@ -216,6 +322,23 @@ def subset(
             ),
         )
     )
+
+    resolved = _resolve_selected_passes(filters)
+    if resolved is None:
+        return []
+    if resolved is not _NO_TIME_FILTER:
+        mission, passes = resolved
+        if box is not None:
+            # Chain selected_passes -> pass_passage_time: keep only the
+            # passes whose ground track crosses box.
+            passage_time = altisearch.pass_passage_time(passes, box, mission)
+            if passage_time.empty:
+                logger.info("No pass of mission %s crosses box %s.", mission, box)
+                return []
+            _log_passes("pass_passage_time", mission, passage_time)
+            passes = passes[passes["pass_number"].isin(passage_time["pass_number"])]
+            _log_passes("passes retained after bbox filtering", mission, passes)
+        _apply_selected_passes(filters, passes)
 
     granule_paths, target_local_files, non_target_local_files = (
         _search_granules_with_overwrite(
