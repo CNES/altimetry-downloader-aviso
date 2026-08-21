@@ -21,6 +21,55 @@ from .tds_client import TDS_HOST, TDS_LAYOUT_CONFIG, Protocol, http_bulk_downloa
 
 logger = logging.getLogger(__name__)
 
+
+def authenticate(func: tp.Callable) -> tp.Callable:
+    """Ensure authentication with the TDS server is setup before calling the
+    input function.
+
+    Parameters
+    ----------
+    func
+        Any high level method that will need authentication with the TDS server.
+
+    Returns
+    -------
+    :
+        The same function, but with the authentication setup automatically called before
+    """
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        ensure_credentials(TDS_HOST)
+        return func(*args, **kwargs)
+
+    return wrapped
+
+
+def summary() -> AvisoCatalog:
+    """Summarizes CDS-AVISO and SWOT products from AVISO's catalog.
+
+    Returns
+    -------
+        The AVISO catalog object containing all the CDS-AVISO and SWOT products
+    """
+    return fetch_catalog()
+
+
+def details(product_short_name: str) -> AvisoProduct:
+    """Details a product information from AVISO's catalog.
+
+    Parameters
+    ----------
+    product_short_name
+        the short name of the product
+
+    Returns
+    -------
+        The description of product
+    """
+    return get_details(product_short_name)
+
+
 #: Sentinel returned by _resolve_selected_passes when no `time` filter was
 #: given, to distinguish from "time given but matches no pass" (None).
 _NO_TIME_FILTER = object()
@@ -124,54 +173,6 @@ def _apply_selected_passes(filters: dict[str, tp.Any], passes: tp.Any) -> bool:
     logger.debug("Altimetry Search resolved granule filters: %s", granule_filters)
     filters.update(granule_filters)
     return True
-
-
-def authenticate(func: tp.Callable) -> tp.Callable:
-    """Ensure authentication with the TDS server is setup before calling the
-    input function.
-
-    Parameters
-    ----------
-    func
-        Any high level method that will need authentication with the TDS server.
-
-    Returns
-    -------
-    :
-        The same function, but with the authentication setup automatically called before
-    """
-
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        ensure_credentials(TDS_HOST)
-        return func(*args, **kwargs)
-
-    return wrapped
-
-
-def summary() -> AvisoCatalog:
-    """Summarizes CDS-AVISO and SWOT products from AVISO's catalog.
-
-    Returns
-    -------
-        The AVISO catalog object containing all the CDS-AVISO and SWOT products
-    """
-    return fetch_catalog()
-
-
-def details(product_short_name: str) -> AvisoProduct:
-    """Details a product information from AVISO's catalog.
-
-    Parameters
-    ----------
-    product_short_name
-        the short name of the product
-
-    Returns
-    -------
-        The description of product
-    """
-    return get_details(product_short_name)
 
 
 @authenticate
