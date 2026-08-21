@@ -243,7 +243,7 @@ def test_get_with_start_and_end(mocker, tmp_path):
 def test_get_bad_options(tmp_path):
     result = runner.invoke(app, ["get", "SWOT"])
     assert result.exit_code != 0
-    assert "Missing option '--output' / '-o'." in result.output
+    assert "Missing option '--output' / '-o'" in result.output
 
     result = runner.invoke(
         app, ["get", "SWOT", "--output", str(tmp_path), "--bad_filter", "bad_value"]
