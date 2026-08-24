@@ -8,7 +8,6 @@ import pytest
 from altimetry_downloader_aviso import altimetry_search_requests as altisearch
 from altimetry_downloader_aviso.altimetry_search_requests import Mission
 
-
 # ---------------------------------------------------------------------------
 # mission_for
 # ---------------------------------------------------------------------------
@@ -73,6 +72,7 @@ def test_mission_for_straddling_phases_raises(mocked_mission_phases):
 # _as_datetime64
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize(
     "value",
     ["2023-07-21", dt.date(2023, 7, 21), np.datetime64("2023-07-21")],
@@ -80,7 +80,7 @@ def test_mission_for_straddling_phases_raises(mocked_mission_phases):
 def test_as_datetime64_accepts_any_date_like(value):
     assert altisearch._as_datetime64(value) == np.datetime64("2023-07-21")
 
-    
+
 # ---------------------------------------------------------------------------
 # selected_passes
 # ---------------------------------------------------------------------------
@@ -88,9 +88,7 @@ def test_as_datetime64_accepts_any_date_like(value):
 
 def test_selected_passes_wraps_get_selected_passes(mocker):
     expected = pd.DataFrame({"cycle_number": [10], "pass_number": [5]})
-    mock = mocker.patch.object(
-        altisearch, "get_selected_passes", return_value=expected
-    )
+    mock = mocker.patch.object(altisearch, "get_selected_passes", return_value=expected)
 
     result = altisearch.selected_passes(
         ("2025-01-01", "2025-01-05"), Mission.SWOT_SWATH_SCIENCE
