@@ -397,3 +397,24 @@ def test_subset_bbox_no_intersection_returns_empty(tmp_path, mock_full_period, m
             box=(0, 0, 10, 10),
         )
     assert local_files == []
+
+
+# ---------------------------------------------------------------------------
+# _product_queryable_by_pass
+# ---------------------------------------------------------------------------
+
+
+def test_gridded_product_is_not_queryable_by_pass():
+    assert ac_core._product_queryable_by_pass("sample_product_e") is False
+
+
+@pytest.mark.parametrize(
+    "short_name",
+    ["sample_product_a", "sample_product_b", "sample_product_c"],
+)
+def test_swath_products_are_queryable_by_pass(short_name):
+    assert ac_core._product_queryable_by_pass(short_name) is True
+
+
+def test_unknown_product_defaults_to_queryable_by_pass():
+    assert ac_core._product_queryable_by_pass("does-not-exist") is True

@@ -175,6 +175,22 @@ def _apply_selected_passes(filters: dict[str, tp.Any], passes: tp.Any) -> bool:
     return True
 
 
+def _product_queryable_by_pass(product_short_name: str) -> bool:
+    """Whether `time` can be resolved into `cycle_number`/`pass_number` via
+    Altimetry Search for this product.
+
+    False for gridded/time-based products (e.g. L4_with_SWOT) which are not
+    organized by orbit cycle/pass -- `time` is then left untouched for
+    `fcollections` to handle directly.
+    """
+    with open(TDS_LAYOUT_CONFIG, encoding="utf-8") as f:
+        tds_layout = yaml.safe_load(f)
+    for product in tds_layout["products"].values():
+        if product["short_name"] == product_short_name:
+            return product.get("queryable_by_pass", True)
+    return True
+
+
 @authenticate
 def get(
     product_short_name: str,
@@ -218,14 +234,14 @@ def get(
             ),
         )
     )
-
-    resolved = _resolve_selected_passes(filters)
-    if resolved is None:
-        return []
-    if resolved is not _NO_TIME_FILTER:
-        _, passes = resolved
-        if not _apply_selected_passes(filters, passes):
+    if _product_queryable_by_pass(product_short_name):
+        resolved = _resolve_selected_passes(filters)
+        if resolved is None:
             return []
+        if resolved is not _NO_TIME_FILTER:
+            _, passes = resolved
+            if not _apply_selected_passes(filters, passes):
+                return []
 
     granule_paths, _, non_target_local_files = _search_granules_with_overwrite(
         product_short_name, Protocol.HTTP, output_dir, overwrite, **filters
@@ -331,23 +347,24 @@ def subset(
         )
     )
 
-    resolved = _resolve_selected_passes(filters)
-    if resolved is None:
-        return []
-    if resolved is not _NO_TIME_FILTER:
-        mission, passes = resolved
-        if box is not None:
-            # Chain selected_passes -> pass_passage_time: keep only the
-            # passes whose ground track crosses box.
-            passage_time = altisearch.pass_passage_time(passes, box, mission)
-            if passage_time.empty:
-                logger.info("No pass of mission %s crosses box %s.", mission, box)
-                return []
-            _log_passes("pass_passage_time", mission, passage_time)
-            passes = passes[passes["pass_number"].isin(passage_time["pass_number"])]
-            _log_passes("passes retained after bbox filtering", mission, passes)
-        if not _apply_selected_passes(filters, passes):
+    if _product_queryable_by_pass(product_short_name):
+        resolved = _resolve_selected_passes(filters)
+        if resolved is None:
             return []
+        if resolved is not _NO_TIME_FILTER:
+            mission, passes = resolved
+            if box is not None:
+                # Chain selected_passes -> pass_passage_time: keep only the
+                # passes whose ground track crosses box.
+                passage_time = altisearch.pass_passage_time(passes, box, mission)
+                if passage_time.empty:
+                    logger.info("No pass of mission %s crosses box %s.", mission, box)
+                    return []
+                _log_passes("pass_passage_time", mission, passage_time)
+                passes = passes[passes["pass_number"].isin(passage_time["pass_number"])]
+                _log_passes("passes retained after bbox filtering", mission, passes)
+            if not _apply_selected_passes(filters, passes):
+                return []
 
     granule_paths, target_local_files, non_target_local_files = (
         _search_granules_with_overwrite(
