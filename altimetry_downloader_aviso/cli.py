@@ -248,6 +248,18 @@ def get(
         "-V",
         help="Product's version. By default, last version is selected",
     ),
+    box: list = typer.Option(
+        None,
+        "--box",
+        "-b",
+        help=(
+            "Area of interest. (lon_min, lat_min, lon_max, lat_max). "
+            "Needs --start/--end."
+        ),
+        parser=lambda box_str: tuple(
+            map(lambda x: float(x.strip()), box_str.split(","))
+        ),
+    ),
     quiet: bool = typer.Option(
         False,
         "--quiet",
@@ -277,6 +289,7 @@ def get(
             pass_number=pass_number if pass_number else None,
             time=(start, end),
             version=version,
+            box=box,
             overwrite=overwrite,
         )
 

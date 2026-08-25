@@ -1,7 +1,9 @@
 """Thin wrappers around :mod:`altimetry.search` (the Altimetry Search package).
 
 Each function here does input/output formatting only, around a single
-Altimetry Search call.
+Altimetry Search call. Chaining ``selected_passes`` with ``pass_passage_time``
+(i.e. restricting passes to those crossing a bbox) is orchestrated in
+``core.py::subset``, not here.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ from altimetry.search import (
 )
 from pyinterp.geometry import geographic
 
+#: Swath missions a `time` filter can resolve to
 _SWATH_MISSIONS = (Mission.SWOT_SWATH_CALVAL, Mission.SWOT_SWATH_SCIENCE)
 
 
@@ -52,6 +55,49 @@ def _covers(
     date_start = _as_datetime64(properties.date_start)
     date_end = _as_datetime64(properties.date_end) if properties.date_end else None
     return start >= date_start and (date_end is None or end <= date_end)
+
+
+def mission_for_cycle(cycle_number: int) -> Mission:
+    """Pick the KaRIn swath mission (CalVal or Science) covering
+    ``cycle_number``, using each mission's ``first_cycle``/``nb_cycle``.
+
+    Used when resolving ``box`` without a ``time`` filter, where
+    ``mission_for`` has no period to work from.
+
+    Raises
+    ------
+    ValueError
+        If ``cycle_number`` falls in no known mission phase.
+    """
+    loader = MissionPropertiesLoader()
+    matches = [
+        mission
+        for mission in _SWATH_MISSIONS
+        if _covers_cycle(loader.load(mission), cycle_number)
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    msg = (
+        f"cycle_number {cycle_number} matches no single",
+        "mission phase (matches: {matches})",
+    )
+    raise ValueError(msg)
+
+
+def _covers_cycle(properties: MissionProperties, cycle_number: int) -> bool:
+    return (
+        properties.first_cycle
+        <= cycle_number
+        < properties.first_cycle + properties.nb_cycle
+    )
+
+
+def all_pass_numbers(mission: Mission) -> list[int]:
+    """Every pass number of ``mission``'s orbit: ``1`` to ``nb_pass``
+    (inclusive), the same set every cycle -- see
+    ``altimetry.search.orbit.get_pass_passage_time``."""
+    nb_pass = MissionPropertiesLoader().load(mission).nb_pass
+    return list(range(1, nb_pass + 1))
 
 
 def _as_datetime64(value: object) -> np.datetime64:
@@ -90,7 +136,12 @@ def pass_passage_time(
     mission: Mission,
 ) -> pd.DataFrame:
     """Wrap ``get_pass_passage_time``: turns a ``(lon_min, lat_min, lon_max,
-    lat_max)`` box into the polygon it expects."""
+    lat_max)`` box into the polygon it expects.
+
+    A pass absent from the result does not cross ``box`` (see
+    ``altimetry.search.orbit.get_pass_passage_time``, which only emits a row
+    per intersecting pass).
+    """
     return get_pass_passage_time(mission, passes, _box_to_polygon(box))
 
 
@@ -98,6 +149,7 @@ def _box_to_polygon(box: tuple[float, float, float, float]) -> geographic.Polygo
     """Build a polygon from a bbox, densifying the constant-latitude edges
     so they follow the parallel rather than a geodesic chord between the
     corners -- same approach as Altimetry Search's own map widget
+    (``altimetry.search.gui.widgets.draw_bbox``).
     """
     lon_min, lat_min, lon_max, lat_max = box
     n = max(round(lon_max - lon_min) * 2, 2)

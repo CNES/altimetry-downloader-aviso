@@ -198,6 +198,7 @@ def test_get_simple_filters(mocker, tmp_path):
         cycle_number=[1, 2],
         pass_number=None,
         time=(None, None),
+        box=None,
         overwrite=False,
     )
 

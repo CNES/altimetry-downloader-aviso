@@ -174,7 +174,7 @@ def test_resolve_selected_passes_no_time_filter():
 
 
 @pytest.mark.parametrize("time", [(None, None), None])
-def test_resolve_selected_passes_time_none_filter(time):
+def test_resolve_selected_passes_time_none_is_no_time_filter(time):
     filters = {"cycle_number": [2], "time": time}
     resolved = ac_core._resolve_selected_passes(filters)
     assert resolved is ac_core._NO_TIME_FILTER
@@ -290,6 +290,43 @@ def mock_full_period(mocker):
     )
 
 
+def test_resolve_filters_skips_altisearch_for_non_queryable_product(mocker):
+    mock_selected_passes = mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.selected_passes"
+    )
+    filters = {"cycle_number": [2], "time": ("2025-01-01", "2025-01-02")}
+
+    assert ac_core._resolve_filters("sample_product_e", filters, box=None) is True
+
+    mock_selected_passes.assert_not_called()
+    # Untouched: Altimetry Search was never consulted, time stays as-is.
+    assert filters == {"cycle_number": [2], "time": ("2025-01-01", "2025-01-02")}
+
+
+@pytest.mark.parametrize("command", [get, subset])
+def test_non_queryable_product_bypasses_altisearch(tmp_path, mocker, command):
+    # sample_product_a is queryable by pass; force it non-queryable here to
+    # exercise get()/subset() end-to-end without a dedicated mock catalog
+    # for a gridded product.
+    mocker.patch(
+        "altimetry_downloader_aviso.core._product_queryable_by_pass",
+        return_value=False,
+    )
+    mock_selected_passes = mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.selected_passes"
+    )
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        local_files = command(
+            product_short_name="sample_product_a",
+            output_dir=tmp_path,
+            time=("2025-04-04", "2025-04-05"),
+        )
+    mock_selected_passes.assert_not_called()
+    # time passed straight through to fcollections, untouched: same result
+    # as no filter at all against this mock catalog.
+    assert sorted(local_files) == sorted(str(tmp_path / f) for f in ALL_FILES)
+
+
 @pytest.mark.parametrize("command", [get, subset])
 def test_time_filter_matches_no_pass_returns_empty(tmp_path, mocker, command):
     # Covers `if resolved is None: return []` in get()/subset(): time given,
@@ -352,7 +389,7 @@ def test_time_and_explicit_filters_no_intersection_returns_empty(
 
 
 @pytest.mark.parametrize("command", [get, subset])
-def test_time_none_and_pass_filters(tmp_path, command):
+def test_time_none_none_keeps_explicit_cycle_pass_filters(tmp_path, command):
     # Regression: the CLI always passes time=(start, end), which is
     # (None, None) when --start/--end are omitted.
     with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
@@ -367,13 +404,14 @@ def test_time_none_and_pass_filters(tmp_path, command):
     )
 
 
-def test_subset_bbox_chains_pass_passage_time(tmp_path, mock_full_period, mocker):
+@pytest.mark.parametrize("command", [get, subset])
+def test_bbox_chains_pass_passage_time(tmp_path, mock_full_period, mocker, command):
     mocker.patch(
         "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
         return_value=pd.DataFrame({"pass_number": [22, 33]}),
     )
     with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
-        local_files = subset(
+        local_files = command(
             product_short_name="sample_product_a",
             output_dir=tmp_path,
             time=("2025-01-01", "2025-01-02"),
@@ -384,13 +422,16 @@ def test_subset_bbox_chains_pass_passage_time(tmp_path, mock_full_period, mocker
     )
 
 
-def test_subset_bbox_no_intersection_returns_empty(tmp_path, mock_full_period, mocker):
+@pytest.mark.parametrize("command", [get, subset])
+def test_bbox_no_intersection_returns_empty(
+    tmp_path, mock_full_period, mocker, command
+):
     mocker.patch(
         "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
         return_value=pd.DataFrame({"pass_number": []}),
     )
     with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
-        local_files = subset(
+        local_files = command(
             product_short_name="sample_product_a",
             output_dir=tmp_path,
             time=("2025-01-01", "2025-01-02"),
@@ -400,11 +441,214 @@ def test_subset_bbox_no_intersection_returns_empty(tmp_path, mock_full_period, m
 
 
 # ---------------------------------------------------------------------------
+# _resolve_box_only / box without time
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_box_only_narrows_pass_number(mocker, caplog):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
+        return_value="MOCK_MISSION",
+    )
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
+        return_value=pd.DataFrame({"pass_number": [225]}),
+    )
+    filters = {"cycle_number": 1, "pass_number": [223, 225, 236]}
+    with caplog.at_level("INFO", logger="altimetry_downloader_aviso.core"):
+        result = ac_core._resolve_box_only(filters, (0, 0, 10, 10), 1, [223, 225, 236])
+    assert result is True
+    assert filters["pass_number"] == [225]
+    assert "excludes pass_number=[223, 236]" in caplog.text
+
+
+def test_resolve_box_only_no_intersection_returns_false(mocker):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
+        return_value="MOCK_MISSION",
+    )
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
+        return_value=pd.DataFrame({"pass_number": []}),
+    )
+    filters = {"cycle_number": 1, "pass_number": [223, 225]}
+    assert ac_core._resolve_box_only(filters, (0, 0, 10, 10), 1, [223, 225]) is False
+
+
+def test_resolve_box_only_passage_time_does_not_match_pass_number_returns_false(mocker):
+    # Distinct from the case above: passage_time is non-empty (some pass
+    # crosses box), but none of its pass_number values match the ones
+    # requested -- covers `if not narrowed: return False`, reached after
+    # the earlier `if passage_time.empty` check.
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
+        return_value="MOCK_MISSION",
+    )
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
+        return_value=pd.DataFrame({"pass_number": [999]}),
+    )
+    filters = {"cycle_number": 1, "pass_number": [223, 225]}
+    assert ac_core._resolve_box_only(filters, (0, 0, 10, 10), 1, [223, 225]) is False
+
+
+def test_resolve_box_only_cycle_spanning_missions_raises(mocker):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
+        side_effect=lambda c: "SCIENCE" if c < 400 else "CALVAL",
+    )
+    filters = {"cycle_number": [1, 500], "pass_number": [223]}
+    with pytest.raises(ValueError, match="spans more than one mission phase"):
+        ac_core._resolve_box_only(filters, (0, 0, 10, 10), [1, 500], [223])
+
+
+@pytest.mark.parametrize("command", [get, subset])
+def test_box_with_cycle_pass_no_time_narrows(tmp_path, mocker, command):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
+        return_value="MOCK_MISSION",
+    )
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
+        return_value=pd.DataFrame({"pass_number": [22]}),
+    )
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        local_files = command(
+            product_short_name="sample_product_a",
+            output_dir=tmp_path,
+            cycle_number=2,
+            pass_number=[2, 22],
+            box=(0, 0, 10, 10),
+        )
+    assert local_files == [str(tmp_path / "dataset_02_22.nc")]
+
+
+def test_subset_box_alone_is_valid_without_altisearch(tmp_path, mocker):
+    # subset() historically allows box on its own (content cropping only);
+    # Altimetry Search pre-filtering is simply skipped, not an error --
+    # unlike get(), which requires time or cycle_number+pass_number (see
+    # test_get_box_without_time_or_cycle_pass_raises).
+    mock_selected_passes = mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.selected_passes"
+    )
+    mock_pass_passage_time = mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.pass_passage_time"
+    )
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        local_files = subset(
+            product_short_name="sample_product_a",
+            output_dir=tmp_path,
+            box=(0, 0, 10, 10),
+        )
+    mock_selected_passes.assert_not_called()
+    mock_pass_passage_time.assert_not_called()
+    assert sorted(local_files) == sorted(str(tmp_path / f) for f in ALL_FILES)
+
+
+def test_resolve_box_only_without_pass_number_uses_all_pass_numbers(mocker):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
+        return_value="MOCK_MISSION",
+    )
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.all_pass_numbers",
+        return_value=[1, 2, 3],
+    )
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
+        return_value=pd.DataFrame({"pass_number": [2]}),
+    )
+    filters = {"cycle_number": 1}
+    result = ac_core._resolve_box_only(filters, (0, 0, 10, 10), 1, None)
+    assert result is True
+    assert filters["pass_number"] == [2]
+
+
+@pytest.mark.parametrize("command", [get, subset])
+def test_box_with_cycle_number_only_resolves_all_passes(tmp_path, mocker, command):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
+        return_value="MOCK_MISSION",
+    )
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.all_pass_numbers",
+        return_value=list(range(1, 50)),
+    )
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
+        return_value=pd.DataFrame({"pass_number": [22]}),
+    )
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        local_files = command(
+            product_short_name="sample_product_a",
+            output_dir=tmp_path,
+            cycle_number=2,
+            box=(0, 0, 10, 10),
+        )
+    assert local_files == [str(tmp_path / "dataset_02_22.nc")]
+
+
+@pytest.mark.parametrize("time", [None, (None, None)])
+def test_get_box_without_time_or_cycle_pass_raises(tmp_path, time):
+    # box alone (no time, no cycle_number) has nothing to resolve the
+    # mission against.
+    with pytest.raises(ValueError, match="box requires either time"):
+        get(
+            product_short_name="sample_product_a",
+            output_dir=tmp_path,
+            box=(0, 0, 10, 10),
+            time=time,
+        )
+
+
+def test_get_box_without_cycle_number_raises(tmp_path):
+    # pass_number alone doesn't resolve the mission.
+    with pytest.raises(ValueError, match="box requires either time"):
+        get(
+            product_short_name="sample_product_a",
+            output_dir=tmp_path,
+            box=(0, 0, 10, 10),
+            pass_number=[223, 225],
+        )
+
+
+def test_get_box_with_cycle_number_only_narrows_via_all_passes(tmp_path, mocker):
+    # cycle_number alone resolves the mission; without pass_number, every
+    # pass of that mission is tested against box (see
+    # test_box_with_cycle_number_only_resolves_all_passes for the shared
+    # get()/subset() end-to-end coverage).
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
+        return_value="MOCK_MISSION",
+    )
+    mock_all_pass_numbers = mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.all_pass_numbers",
+        return_value=[2, 22],
+    )
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
+        return_value=pd.DataFrame({"pass_number": [22]}),
+    )
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        local_files = get(
+            product_short_name="sample_product_a",
+            output_dir=tmp_path,
+            box=(0, 0, 10, 10),
+            cycle_number=2,
+        )
+    mock_all_pass_numbers.assert_called_once_with("MOCK_MISSION")
+    assert local_files == [str(tmp_path / "dataset_02_22.nc")]
+
+
+# ---------------------------------------------------------------------------
 # _product_queryable_by_pass
 # ---------------------------------------------------------------------------
 
 
 def test_gridded_product_is_not_queryable_by_pass():
+    # sample_product_e mirrors L4_with_SWOT: a gridded product, not
+    # organized by orbit cycle/pass -- time must not be resolved through
+    # Altimetry Search for it.
     assert ac_core._product_queryable_by_pass("sample_product_e") is False
 
 
@@ -417,4 +661,6 @@ def test_swath_products_are_queryable_by_pass(short_name):
 
 
 def test_unknown_product_defaults_to_queryable_by_pass():
+    # Defensive default: an unknown short name should not silently disable
+    # Altimetry Search resolution.
     assert ac_core._product_queryable_by_pass("does-not-exist") is True
