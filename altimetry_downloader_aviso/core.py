@@ -8,6 +8,7 @@ import numpy as np
 import yaml
 
 from .auth import ensure_credentials
+from .catalog_client._granules_utils import estimate_total_size, format_size
 from .catalog_client.client import (
     fetch_catalog,
     get_details,
@@ -69,6 +70,31 @@ def details(product_short_name: str) -> AvisoProduct:
     return get_details(product_short_name)
 
 
+def confirm_download(urls: tp.Sequence[str], assume_yes: bool = False) -> bool:
+    """Print the estimated total volumetry and ask for user confirmation.
+
+    Returns True if the download should proceed (user confirmed, or
+    assume_yes was passed).
+    """
+    if not urls:
+        return True
+
+    total, unknown = estimate_total_size(urls)
+    msg = (
+        f"About to download {len(urls)} file(s),"
+        f"estimated total size: {format_size(total)}"
+    )
+    if unknown:
+        msg += f" ({unknown} size(s) could not be determined)"
+    print(msg)
+
+    if assume_yes:
+        return True
+
+    answer = input("Proceed with download? [y/N] ").strip().lower()
+    return answer in ("y", "yes")
+
+
 @authenticate
 def get(
     product_short_name: str,
@@ -78,6 +104,7 @@ def get(
     time: tuple[np.datetime64, np.datetime64] | None = None,
     version: str | None = None,
     overwrite: bool = False,
+    assume_yes: bool = False,
 ) -> list[str]:
     """Downloads a product from Aviso's Thredds Data Server.
 
@@ -97,6 +124,8 @@ def get(
         the version for files/folders selection
     overwrite: bool
         whether to overwrite files if they already exist
+    assume_yes: bool
+        whether to skip the download confirmation prompt (default: False)
 
     Returns
     -------
@@ -116,6 +145,9 @@ def get(
     granule_paths, _, non_target_local_files = _search_granules_with_overwrite(
         product_short_name, Protocol.HTTP, output_dir, overwrite, **filters
     )
+    if not confirm_download(granule_paths, assume_yes=assume_yes):
+        logger.info("Download cancelled by user.")
+        return non_target_local_files
 
     logger.debug("Downloading granules: %s...", list(granule_paths))
 

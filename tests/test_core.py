@@ -6,7 +6,13 @@ import pytest
 
 from altimetry_downloader_aviso.auth import AuthenticationError
 from altimetry_downloader_aviso.catalog_client.client import InvalidProductError
-from altimetry_downloader_aviso.core import details, get, subset, summary
+from altimetry_downloader_aviso.core import (
+    confirm_download,
+    details,
+    get,
+    subset,
+    summary,
+)
 
 
 def test_summary():
@@ -77,6 +83,21 @@ def test_get_subset(tmp_path, short_name, filters, files, command):
         )
 
     assert local_files == [str(tmp_path / f) for f in files]
+
+
+def test_get_download_cancelled(mocker, tmp_path):
+    mock_confirm = mocker.patch(
+        "altimetry_downloader_aviso.core.confirm_download", return_value=False
+    )
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        local_files = get(
+            product_short_name="sample_product_a",
+            output_dir=tmp_path,
+            cycle_number=2,
+        )
+
+    assert local_files == []
+    mock_confirm.assert_called_once()
 
 
 def test_subset_parameters_passed(tmp_path):
@@ -167,3 +188,43 @@ def test_get_subset_auth_error(mocker, tmp_path, command):
 @pytest.mark.parametrize("command", [get, subset])
 def test_get_subset_bad_filters(tmp_path, short_name, filters, command):
     assert command(short_name, tmp_path, **filters) == []
+
+
+def test_confirm_download_empty_urls():
+    assert confirm_download([]) is True
+
+
+def test_confirm_download_assume_yes(mocker, capsys):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.estimate_total_size",
+        return_value=(1024, 0),
+    )
+    result = confirm_download(["https://tds.mock/a.nc"], assume_yes=True)
+
+    assert result is True
+    assert "1.0 KB" in capsys.readouterr().out
+
+
+def test_confirm_download_prompt_yes(mocker, capsys):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.estimate_total_size",
+        return_value=(2048, 1),
+    )
+    mocker.patch("builtins.input", return_value="y")
+
+    result = confirm_download(["https://tds.mock/a.nc", "https://tds.mock/b.nc"])
+
+    out = capsys.readouterr().out
+    assert result is True
+    assert "2 file(s)" in out
+    assert "1 size(s) could not be determined" in out
+
+
+def test_confirm_download_prompt_no(mocker):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.estimate_total_size",
+        return_value=(1024, 0),
+    )
+    mocker.patch("builtins.input", return_value="n")
+
+    assert confirm_download(["https://tds.mock/a.nc"]) is False

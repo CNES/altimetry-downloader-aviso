@@ -248,6 +248,12 @@ def get(
         "-V",
         help="Product's version. By default, last version is selected",
     ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Skip the download size confirmation prompt",
+    ),
     quiet: bool = typer.Option(
         False,
         "--quiet",
@@ -278,6 +284,7 @@ def get(
             time=(start, end),
             version=version,
             overwrite=overwrite,
+            assume_yes=yes,
         )
 
         console.print(f"[green]Local files ({len(downloaded_files)}) :[/]")

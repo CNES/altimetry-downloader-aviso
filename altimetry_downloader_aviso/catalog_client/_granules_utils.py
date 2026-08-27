@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import concurrent.futures as cf
 import logging
 import typing as tp
 import warnings
@@ -8,6 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
+import requests
 import yaml
 from fcollections.core import (
     FileNode,
@@ -219,3 +221,44 @@ def _parse_tds_layout(product: AvisoProduct) -> ProductLayoutConfig:
             catalog_path=product_layout["catalog_path"],
             default_filters=product_layout["filters"],
         )
+
+
+def _get_size_from_url(url: str, timeout: float = 5.0) -> tp.Optional[int]:
+    """Return the size in bytes of a remote file via an HTTP HEAD request, or
+    None if unavailable."""
+    try:
+        resp = requests.head(url, allow_redirects=True, timeout=timeout)
+        resp.raise_for_status()
+        content_length = resp.headers.get("Content-Length")
+        return int(content_length) if content_length is not None else None
+    except requests.RequestException as e:
+        logger.warning("Cannot retrieve size for %s: %s", url, e)
+        return None
+
+
+def estimate_total_size(
+    urls: tp.Sequence[str], max_workers: int = 8
+) -> tp.Tuple[int, int]:
+    """Estimate total download size (bytes) for a list of granule URLs.
+
+    Returns (total_bytes, unknown_count), the latter being the number of
+    granules whose size could not be determined via HEAD.
+    """
+    total = 0
+    unknown = 0
+    with cf.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for size in executor.map(_get_size_from_url, urls):
+            if size is None:
+                unknown += 1
+            else:
+                total += size
+    return total, unknown
+
+
+def format_size(num_bytes: float) -> str:
+    """Format a byte count as a human-readable string (e.g. '1.3 GB')."""
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if abs(num_bytes) < 1024:
+            return f"{num_bytes:.1f} {unit}"
+        num_bytes /= 1024
+    return f"{num_bytes:.1f} PB"

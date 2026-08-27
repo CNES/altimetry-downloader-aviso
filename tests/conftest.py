@@ -270,6 +270,11 @@ def patch_all(mocker):
         mocker.patch(x)
 
 
+@pytest.fixture(autouse=True)
+def bypass_download_confirmation(mocker):
+    mocker.patch("altimetry_downloader_aviso.core.confirm_download", return_value=True)
+
+
 # PATCH TDS CATALOG CONTENT
 
 
