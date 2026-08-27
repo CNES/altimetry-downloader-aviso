@@ -81,8 +81,8 @@ def confirm_download(urls: tp.Sequence[str], assume_yes: bool = False) -> bool:
 
     total, unknown = estimate_total_size(urls)
     msg = (
-        f"About to download {len(urls)} granule(s),",
-        f"estimated total size: {format_size(total)}",
+        f"About to download {len(urls)} file(s),"
+        f"estimated total size: {format_size(total)}"
     )
     if unknown:
         msg += f" ({unknown} size(s) could not be determined)"

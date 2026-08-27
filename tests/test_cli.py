@@ -199,6 +199,7 @@ def test_get_simple_filters(mocker, tmp_path):
         pass_number=None,
         time=(None, None),
         overwrite=False,
+        assume_yes=False,
     )
 
 
