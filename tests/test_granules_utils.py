@@ -6,7 +6,6 @@ from altimetry_downloader_aviso.catalog_client._granules_utils import (
     format_size,
 )
 
-
 # --- _get_size_from_url ---
 
 
@@ -123,6 +122,7 @@ def test_estimate_total_size_all_unknown(mocker):
 
 def test_format_size_bytes():
     assert format_size(500) == "500.0 B"
+
 
 def test_format_size_petabytes():
     assert format_size(1024**5 * 1.1) == "1.1 PB"
