@@ -597,9 +597,6 @@ def test_box_alone_resolves_via_default_mission(tmp_path, mocker, command):
 
 
 def test_gridded_product_is_not_queryable_by_pass():
-    # sample_product_e mirrors L4_with_SWOT: a gridded product, not
-    # organized by orbit cycle/pass -- time must not be resolved through
-    # Altimetry Search for it.
     assert ac_core._product_queryable_by_pass("sample_product_e") is False
 
 
@@ -612,6 +609,4 @@ def test_swath_products_are_queryable_by_pass(short_name):
 
 
 def test_unknown_product_defaults_to_queryable_by_pass():
-    # Defensive default: an unknown short name should not silently disable
-    # Altimetry Search resolution.
     assert ac_core._product_queryable_by_pass("does-not-exist") is True

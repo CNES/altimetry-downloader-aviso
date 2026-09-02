@@ -14,7 +14,7 @@ dependencies = [
     "typer",
     "rich",
     "files-collections>=2",
-    "altimetry-search>=1.1.0",
+    "altimetry-search>2.0.1",
     "pyyaml",
     "pydantic",
     "xarray",

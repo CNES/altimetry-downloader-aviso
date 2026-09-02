@@ -1,10 +1,5 @@
-"""Thin wrappers around :mod:`altimetry.search` (the Altimetry Search package).
-
-Each function here does input/output formatting only, around a single
-Altimetry Search call. Chaining ``selected_passes`` with ``pass_passage_time``
-(i.e. restricting passes to those crossing a bbox) is orchestrated in
-``core.py::subset``, not here.
-"""
+"""Thin wrappers around :mod:`altimetry.search` (the Altimetry Search
+package)."""
 
 from __future__ import annotations
 
@@ -136,12 +131,7 @@ def pass_passage_time(
     mission: Mission,
 ) -> pd.DataFrame:
     """Wrap ``get_pass_passage_time``: turns a ``(lon_min, lat_min, lon_max,
-    lat_max)`` box into the polygon it expects.
-
-    A pass absent from the result does not cross ``box`` (see
-    ``altimetry.search.orbit.get_pass_passage_time``, which only emits a row
-    per intersecting pass).
-    """
+    lat_max)`` box into the polygon it expects."""
     return get_pass_passage_time(mission, passes, _box_to_polygon(box))
 
 
@@ -151,12 +141,7 @@ def passes_crossing_polygon(
     passes: list[int] | None = None,
 ) -> list[int]:
     """Wrap ``get_passes_crossing_polygon``: turns a bbox into the polygon it
-    expects, and returns a plain sorted list of pass numbers.
-
-    Unlike :func:`pass_passage_time`, this has no notion of time and needs
-    no prior ``selected_passes`` result: if ``passes`` is `None`, every
-    pass of ``mission``'s orbit is tested against ``box``.
-    """
+    expects, and returns a plain sorted list of pass numbers."""
     result = get_passes_crossing_polygon(mission, _box_to_polygon(box), passes)
     return sorted(int(p) for p in result)
 
@@ -181,14 +166,7 @@ def _box_to_polygon(box: tuple[float, float, float, float]) -> geographic.Polygo
 
 def as_granule_filters(passes: pd.DataFrame) -> dict[str, list[int]]:
     """Format a passes dataframe into the ``cycle_number``/``pass_number``
-    filters consumed by ``catalog_client.client.search_granules``.
-
-    The two lists are independent, not paired -- correct here since a given
-    ``pass_number``'s ground track is identical every cycle, so their cross
-    product already matches what Altimetry Search selected (unless ``time``
-    straddles a phase transition, which :func:`mission_for` rejects
-    upstream).
-    """
+    filters consumed by ``catalog_client.client.search_granules``."""
     return {
         "cycle_number": sorted(passes["cycle_number"].unique().tolist()),
         "pass_number": sorted(passes["pass_number"].unique().tolist()),
