@@ -5,7 +5,6 @@ import pathlib as pl
 import typing as tp
 
 import numpy as np
-import pandas as pd
 import yaml
 
 from . import altimetry_search_requests as altisearch
@@ -44,30 +43,6 @@ def _log_passes(step: str, mission: tp.Any, passes: tp.Any) -> None:
     )
 
 
-def _validate_box_requirements(
-    box: tuple[float, float, float, float] | None,
-    time: tp.Any,
-    cycle_number: int | list[int] | None,
-) -> None:
-    """`box` needs either `time` or `cycle_number` to resolve a mission through
-    Altimetry Search. `pass_number` is not required upfront: it only narrows
-    the candidate passes tested against `box` when given.
-
-    Raises
-    ------
-    ValueError
-        If `box` is given but neither `time` nor `cycle_number` is.
-    """
-    if box is None:
-        return
-    if not _is_empty_time(time):
-        return
-    if cycle_number is not None:
-        return
-    msg = "box requires either time or cycle_number to resolve the mission."
-    raise ValueError(msg)
-
-
 def _resolve_filters(
     product_short_name: str,
     filters: dict[str, tp.Any],
@@ -78,12 +53,8 @@ def _resolve_filters(
 
     No-op if the product isn't organized by orbit cycle/pass (see
     `_product_queryable_by_pass`). If no `time` filter was given, `box`
-    (if any) is resolved directly from explicit `cycle_number` (and
-    `pass_number`, if given) instead -- see `_resolve_box_only`. If `box`
-    is given but `cycle_number` is not either, this is a no-op rather than
-    an error: `get()` validates that combination itself upfront (see
-    `_validate_box_requirements`), and `subset()` deliberately allows
-    `box` on its own for plain content cropping.
+    (if any) is resolved directly from `cycle_number`/`pass_number`
+    instead, however much of either is given -- see `_resolve_box_only`.
 
     Returns
     -------
@@ -99,10 +70,9 @@ def _resolve_filters(
     if resolved is _NO_TIME_FILTER:
         if box is None:
             return True
-        cycle_number = filters.get("cycle_number")
-        if cycle_number is None:
-            return True
-        return _resolve_box_only(filters, box, cycle_number, filters.get("pass_number"))
+        return _resolve_box_only(
+            filters, box, filters.get("cycle_number"), filters.get("pass_number")
+        )
 
     mission, passes = resolved
     if box is not None:
@@ -122,64 +92,55 @@ def _resolve_filters(
 def _resolve_box_only(
     filters: dict[str, tp.Any],
     box: tuple[float, float, float, float],
-    cycle_number: int | list[int],
+    cycle_number: int | list[int] | None,
     pass_number: int | list[int] | None,
 ) -> bool:
-    """Resolve `box` into a narrowed `pass_number` filter without a `time`
-    period, from the given `cycle_number` (and `pass_number`, if given).
+    """Resolve `box` into a `pass_number` filter without a `time` period.
 
     Without `time`, there is no `selected_passes` result to work from and
-    no period to pick a mission from (see `mission_for`): `cycle_number`
-    picks the mission instead (via `mission_for_cycle`). The candidate
-    passes to test against `box` are `pass_number` if given, otherwise
-    every pass of the mission (see `altisearch.all_pass_numbers` -- fixed
-    per mission phase, the same set every cycle).
+    no period to pick a mission from (see `mission_for`). `cycle_number`
+    picks the mission instead (via `mission_for_cycle`) if given; if not,
+    falls back to `altisearch.DEFAULT_MISSION` (every product currently
+    exposed by this downloader is Science-phase).
 
     Returns
     -------
-        `False` if none of the candidate passes cross `box` (caller
-        should return an empty result). `True` otherwise, with
-        `filters["pass_number"]` narrowed in place.
+        `False` if no candidate pass crosses `box` (caller should return
+        an empty result). `True` otherwise, with `filters["pass_number"]`
+        set/narrowed in place.
     """
-    cycles = cycle_number if isinstance(cycle_number, list) else [cycle_number]
-    missions = {altisearch.mission_for_cycle(c) for c in cycles}
-    if len(missions) != 1:
-        msg = f"cycle_number {cycle_number} spans more than one mission phase."
-        raise ValueError(msg)
-    mission = missions.pop()
-
-    if pass_number is None:
-        candidates = altisearch.all_pass_numbers(mission)
+    if cycle_number is not None:
+        cycles = cycle_number if isinstance(cycle_number, list) else [cycle_number]
+        missions = {altisearch.mission_for_cycle(c) for c in cycles}
+        if len(missions) != 1:
+            msg = f"cycle_number {cycle_number} spans more than one mission phase."
+            raise ValueError(msg)
+        mission = missions.pop()
     else:
-        candidates = pass_number if isinstance(pass_number, list) else [pass_number]
-    passes = pd.DataFrame({"pass_number": sorted(set(candidates))})
+        mission = altisearch.DEFAULT_MISSION
 
-    passage_time = altisearch.pass_passage_time(passes, box, mission)
-    if passage_time.empty:
+    candidates = altisearch.passes_crossing_polygon(mission, box, pass_number)
+    if not candidates:
         logger.info("No pass of mission %s crosses box %s.", mission, box)
         return False
-    _log_passes("pass_passage_time", mission, passage_time)
-
-    narrowed = _intersect(
-        candidates, sorted(passage_time["pass_number"].unique().tolist())
+    logger.debug(
+        "Altimetry Search passes crossing box: mission=%s, pass_number=%s",
+        mission,
+        candidates,
     )
-    if not narrowed:
-        logger.info(
-            "pass_number=%s does not intersect the passes crossing box %s.",
-            candidates,
-            box,
-        )
-        return False
 
-    excluded = sorted(set(candidates) - set(narrowed))
-    if excluded:
-        logger.info(
-            "box %s excludes pass_number=%s; keeping pass_number=%s.",
-            box,
-            excluded,
-            narrowed,
-        )
-    filters["pass_number"] = narrowed
+    if pass_number is not None:
+        given = pass_number if isinstance(pass_number, list) else [pass_number]
+        excluded = sorted(set(given) - set(candidates))
+        if excluded:
+            logger.info(
+                "box %s excludes pass_number=%s; keeping pass_number=%s.",
+                box,
+                excluded,
+                candidates,
+            )
+
+    filters["pass_number"] = candidates
     return True
 
 
@@ -192,7 +153,8 @@ def _is_empty_time(time: tp.Any) -> bool:
 def _resolve_selected_passes(
     filters: dict[str, tp.Any],
 ) -> tuple[altisearch.Mission, tp.Any] | None | object:
-    """Pop the `time` filter and resolve it into the passes it covers.
+    """Resolve the `time` filter into the passes it covers via Altimetry
+    Search.
 
     Returns
     -------
@@ -202,8 +164,9 @@ def _resolve_selected_passes(
     if "time" not in filters:
         return _NO_TIME_FILTER
 
-    time = filters.pop("time")
+    time = filters["time"]
     if _is_empty_time(time):
+        del filters["time"]
         return _NO_TIME_FILTER
     start, end = time
     if start is None or end is None:
@@ -366,24 +329,21 @@ def get(
         crosses it (via Altimetry Search). Unlike `subset`, `get` never
         crops file content: `box` only has an effect through Altimetry
         Search. If `time` is set, it narrows the passes resolved from
-        `time`. Otherwise, `cycle_number` must be given explicitly (to
-        resolve the mission); `pass_number`, if also given, narrows the
-        candidate passes tested against `box` -- otherwise every pass of
-        the mission is tested.
+        `time`. Otherwise, `cycle_number` picks the mission if given
+        (falling back to the Science phase otherwise), and `pass_number`
+        narrows the candidate passes tested against `box` if given
+        (otherwise every pass of the mission is tested).
 
     Raises
     ------
     ValueError
-        If `box` is given without `time` or `cycle_number`, or if
-        `cycle_number` spans more than one mission phase.
+        If `cycle_number` spans more than one mission phase.
 
     Returns
     -------
         The list of local files matching the request, including both that were already
         present, and those created by the get operation.
     """
-    _validate_box_requirements(box, time, cycle_number)
-
     filters = dict(
         filter(
             lambda item: item[1] is not None,
@@ -447,9 +407,10 @@ def subset(
         Selection box (lon_min, lat_min, lon_max, lat_max) in degrees. Longitude range
         can be in either [0, 360[ or [-180, 180[ convention. lon_min must be inferior to
         lon_max (the convention must be changed to verify this constraint). Always used
-        to crop the content of downloaded granules. If `time` is set (or both
-        `cycle_number` and `pass_number` are), also used beforehand to restrict which
-        granules are downloaded in the first place, via Altimetry Search.
+        to crop the content of downloaded granules. Also always used beforehand, via
+        Altimetry Search, to restrict which granules are downloaded in the first place:
+        chained with `time` if set, otherwise with `cycle_number`/`pass_number` if given
+        (falling back to every pass of the Science-phase mission otherwise).
     selected_variables
         List of variables to select.
 

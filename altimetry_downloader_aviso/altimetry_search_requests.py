@@ -15,12 +15,19 @@ from altimetry.search import (
     MissionProperties,
     MissionPropertiesLoader,
     get_pass_passage_time,
+    get_passes_crossing_polygon,
     get_selected_passes,
 )
 from pyinterp.geometry import geographic
 
-#: Swath missions a `time` filter can resolve to
+#: Swath missions a `time` filter can resolve to. Nadir missions share the
+#: same date ranges but are not used by this downloader.
 _SWATH_MISSIONS = (Mission.SWOT_SWATH_CALVAL, Mission.SWOT_SWATH_SCIENCE)
+
+#: Mission assumed when `box` is given with neither `time` nor
+#: `cycle_number` to resolve one from. All products currently exposed by
+#: this downloader are SWOT KaRIn science-phase products.
+DEFAULT_MISSION = Mission.SWOT_SWATH_SCIENCE
 
 
 class NoPassFoundError(Exception):
@@ -78,8 +85,8 @@ def mission_for_cycle(cycle_number: int) -> Mission:
     if len(matches) == 1:
         return matches[0]
     msg = (
-        f"cycle_number {cycle_number} matches no single",
-        "mission phase (matches: {matches})",
+        f"cycle_number {cycle_number} matches no ",
+        f"single mission phase (matches: {matches})",
     )
     raise ValueError(msg)
 
@@ -92,17 +99,10 @@ def _covers_cycle(properties: MissionProperties, cycle_number: int) -> bool:
     )
 
 
-def all_pass_numbers(mission: Mission) -> list[int]:
-    """Every pass number of ``mission``'s orbit: ``1`` to ``nb_pass``
-    (inclusive), the same set every cycle -- see
-    ``altimetry.search.orbit.get_pass_passage_time``."""
-    nb_pass = MissionPropertiesLoader().load(mission).nb_pass
-    return list(range(1, nb_pass + 1))
-
-
 def _as_datetime64(value: object) -> np.datetime64:
     """Normalize a date-like value (np.datetime64, datetime.date, str, ...)
-    into an np.datetime64."""
+    into an np.datetime64, so comparisons stay robust no matter how Altimetry
+    Search represents ``MissionProperties`` dates."""
     return value if isinstance(value, np.datetime64) else np.datetime64(str(value))
 
 
@@ -145,6 +145,22 @@ def pass_passage_time(
     return get_pass_passage_time(mission, passes, _box_to_polygon(box))
 
 
+def passes_crossing_polygon(
+    mission: Mission,
+    box: tuple[float, float, float, float],
+    passes: list[int] | None = None,
+) -> list[int]:
+    """Wrap ``get_passes_crossing_polygon``: turns a bbox into the polygon it
+    expects, and returns a plain sorted list of pass numbers.
+
+    Unlike :func:`pass_passage_time`, this has no notion of time and needs
+    no prior ``selected_passes`` result: if ``passes`` is `None`, every
+    pass of ``mission``'s orbit is tested against ``box``.
+    """
+    result = get_passes_crossing_polygon(mission, _box_to_polygon(box), passes)
+    return sorted(int(p) for p in result)
+
+
 def _box_to_polygon(box: tuple[float, float, float, float]) -> geographic.Polygon:
     """Build a polygon from a bbox, densifying the constant-latitude edges
     so they follow the parallel rather than a geodesic chord between the
@@ -165,7 +181,14 @@ def _box_to_polygon(box: tuple[float, float, float, float]) -> geographic.Polygo
 
 def as_granule_filters(passes: pd.DataFrame) -> dict[str, list[int]]:
     """Format a passes dataframe into the ``cycle_number``/``pass_number``
-    filters consumed by ``catalog_client.client.search_granules``."""
+    filters consumed by ``catalog_client.client.search_granules``.
+
+    The two lists are independent, not paired -- correct here since a given
+    ``pass_number``'s ground track is identical every cycle, so their cross
+    product already matches what Altimetry Search selected (unless ``time``
+    straddles a phase transition, which :func:`mission_for` rejects
+    upstream).
+    """
     return {
         "cycle_number": sorted(passes["cycle_number"].unique().tolist()),
         "pass_number": sorted(passes["pass_number"].unique().tolist()),

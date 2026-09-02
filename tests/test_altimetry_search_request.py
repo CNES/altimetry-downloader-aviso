@@ -39,8 +39,6 @@ def _mock_loader(
     science_range,
     calval_cycles=(474, 105),
     science_cycles=(1, 399),
-    calval_nb_pass=28,
-    science_nb_pass=584,
 ):
     properties = {
         Mission.SWOT_SWATH_CALVAL: SimpleNamespace(
@@ -48,14 +46,12 @@ def _mock_loader(
             date_end=calval_range[1],
             first_cycle=calval_cycles[0],
             nb_cycle=calval_cycles[1],
-            nb_pass=calval_nb_pass,
         ),
         Mission.SWOT_SWATH_SCIENCE: SimpleNamespace(
             date_start=science_range[0],
             date_end=science_range[1],
             first_cycle=science_cycles[0],
             nb_cycle=science_cycles[1],
-            nb_pass=science_nb_pass,
         ),
     }
     loader = mocker.Mock()
@@ -152,25 +148,6 @@ def test_mission_for_cycle_overlapping_phases_raises(mocker):
 
 
 # ---------------------------------------------------------------------------
-# all_pass_numbers
-# ---------------------------------------------------------------------------
-
-
-def test_all_pass_numbers_science(mocked_mission_phases):
-    passes = altisearch.all_pass_numbers(Mission.SWOT_SWATH_SCIENCE)
-    assert passes[0] == 1
-    assert passes[-1] == 584
-    assert len(passes) == 584
-
-
-def test_all_pass_numbers_calval(mocked_mission_phases):
-    passes = altisearch.all_pass_numbers(Mission.SWOT_SWATH_CALVAL)
-    assert passes[0] == 1
-    assert passes[-1] == 28
-    assert len(passes) == 28
-
-
-# ---------------------------------------------------------------------------
 # selected_passes
 # ---------------------------------------------------------------------------
 
@@ -238,6 +215,42 @@ def test_pass_passage_time_wraps_get_pass_passage_time(mocker):
     assert mission_arg is Mission.SWOT_SWATH_SCIENCE
     assert passes_arg is passes
     assert polygon_arg is not None
+
+
+def test_passes_crossing_polygon_wraps_get_passes_crossing_polygon(mocker):
+    mock = mocker.patch.object(
+        altisearch,
+        "get_passes_crossing_polygon",
+        return_value=np.array([33, 2], dtype=np.uint16),
+    )
+
+    result = altisearch.passes_crossing_polygon(
+        Mission.SWOT_SWATH_SCIENCE, (0, 0, 10, 10), [2, 33]
+    )
+
+    # Sorted, and plain Python ints (not numpy.uint16).
+    assert result == [2, 33]
+    assert all(type(p) is int for p in result)
+    mission_arg, polygon_arg, passes_arg = mock.call_args[0]
+    assert mission_arg is Mission.SWOT_SWATH_SCIENCE
+    assert polygon_arg is not None
+    assert passes_arg == [2, 33]
+
+
+def test_passes_crossing_polygon_defaults_passes_to_none(mocker):
+    mock = mocker.patch.object(
+        altisearch,
+        "get_passes_crossing_polygon",
+        return_value=np.array([], dtype=np.uint16),
+    )
+
+    result = altisearch.passes_crossing_polygon(
+        Mission.SWOT_SWATH_SCIENCE, (0, 0, 10, 10)
+    )
+
+    assert result == []
+    mission_arg, polygon_arg, passes_arg = mock.call_args[0]
+    assert passes_arg is None
 
 
 def test_box_to_polygon_densifies_constant_latitude_edges(mocker):
