@@ -76,14 +76,19 @@ def _resolve_filters(
 
     mission, passes = resolved
     if box is not None:
-        # Chain selected_passes -> pass_passage_time: keep only the
+        # Chain selected_passes -> passes_crossing_polygon: keep only the
         # passes whose ground track crosses box.
-        passage_time = altisearch.pass_passage_time(passes, box, mission)
-        if passage_time.empty:
+        candidates = sorted(passes["pass_number"].unique().tolist())
+        crossing = altisearch.passes_crossing_polygon(mission, box, candidates)
+        if not crossing:
             logger.info("No pass of mission %s crosses box %s.", mission, box)
             return False
-        _log_passes("pass_passage_time", mission, passage_time)
-        passes = passes[passes["pass_number"].isin(passage_time["pass_number"])]
+        logger.debug(
+            "Altimetry Search passes crossing box: mission=%s, pass_number=%s",
+            mission,
+            crossing,
+        )
+        passes = passes[passes["pass_number"].isin(crossing)]
         _log_passes("passes retained after bbox filtering", mission, passes)
 
     return _apply_selected_passes(filters, passes)

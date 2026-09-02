@@ -9,7 +9,6 @@ from altimetry.search import (
     Mission,
     MissionProperties,
     MissionPropertiesLoader,
-    get_pass_passage_time,
     get_passes_crossing_polygon,
     get_selected_passes,
 )
@@ -80,8 +79,8 @@ def mission_for_cycle(cycle_number: int) -> Mission:
     if len(matches) == 1:
         return matches[0]
     msg = (
-        f"cycle_number {cycle_number} matches no ",
-        f"single mission phase (matches: {matches})",
+        f"cycle_number {cycle_number} matches no single mission phase "
+        f"(matches: {matches})"
     )
     raise ValueError(msg)
 
@@ -125,23 +124,18 @@ def selected_passes(
     return passes
 
 
-def pass_passage_time(
-    passes: pd.DataFrame,
-    box: tuple[float, float, float, float],
-    mission: Mission,
-) -> pd.DataFrame:
-    """Wrap ``get_pass_passage_time``: turns a ``(lon_min, lat_min, lon_max,
-    lat_max)`` box into the polygon it expects."""
-    return get_pass_passage_time(mission, passes, _box_to_polygon(box))
-
-
 def passes_crossing_polygon(
     mission: Mission,
     box: tuple[float, float, float, float],
     passes: list[int] | None = None,
 ) -> list[int]:
     """Wrap ``get_passes_crossing_polygon``: turns a bbox into the polygon it
-    expects, and returns a plain sorted list of pass numbers."""
+    expects, and returns a plain sorted list of pass numbers.
+
+    No notion of time is involved, and no prior ``selected_passes`` result
+    is needed: if ``passes`` is `None`, every pass of ``mission``'s orbit is
+    tested against ``box``.
+    """
     result = get_passes_crossing_polygon(mission, _box_to_polygon(box), passes)
     return sorted(int(p) for p in result)
 

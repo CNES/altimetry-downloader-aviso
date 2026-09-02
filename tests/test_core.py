@@ -72,6 +72,9 @@ def test_get_subset(tmp_path, short_name, filters, files, command):
 
 
 def test_subset_parameters_passed(tmp_path, mocker):
+    # box alone now resolves via Altimetry Search too (see
+    # test_box_alone_resolves_via_default_mission); mock it here so the
+    # request actually reaches subset_one_file with the parameters below.
     mocker.patch(
         "altimetry_downloader_aviso.core.altisearch.passes_crossing_polygon",
         return_value=[2, 22, 3, 33],
@@ -408,10 +411,12 @@ def test_time_none_none_keeps_explicit_cycle_pass_filters(tmp_path, command):
 
 
 @pytest.mark.parametrize("command", [get, subset])
-def test_bbox_chains_pass_passage_time(tmp_path, mock_full_period, mocker, command):
+def test_bbox_chains_passes_crossing_polygon(
+    tmp_path, mock_full_period, mocker, command
+):
     mocker.patch(
-        "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
-        return_value=pd.DataFrame({"pass_number": [22, 33]}),
+        "altimetry_downloader_aviso.core.altisearch.passes_crossing_polygon",
+        return_value=[22, 33],
     )
     with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
         local_files = command(
@@ -430,8 +435,8 @@ def test_bbox_no_intersection_returns_empty(
     tmp_path, mock_full_period, mocker, command
 ):
     mocker.patch(
-        "altimetry_downloader_aviso.core.altisearch.pass_passage_time",
-        return_value=pd.DataFrame({"pass_number": []}),
+        "altimetry_downloader_aviso.core.altisearch.passes_crossing_polygon",
+        return_value=[],
     )
     with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
         local_files = command(

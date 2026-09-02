@@ -195,26 +195,8 @@ def test_selected_passes_rejects_end_before_start():
 
 
 # ---------------------------------------------------------------------------
-# pass_passage_time / _box_to_polygon
+# passes_crossing_polygon / _box_to_polygon
 # ---------------------------------------------------------------------------
-
-
-def test_pass_passage_time_wraps_get_pass_passage_time(mocker):
-    passes = pd.DataFrame({"cycle_number": [10], "pass_number": [5]})
-    expected = pd.DataFrame({"pass_number": [5]})
-    mock = mocker.patch.object(
-        altisearch, "get_pass_passage_time", return_value=expected
-    )
-
-    result = altisearch.pass_passage_time(
-        passes, (0, 0, 10, 10), Mission.SWOT_SWATH_SCIENCE
-    )
-
-    pd.testing.assert_frame_equal(result, expected)
-    mission_arg, passes_arg, polygon_arg = mock.call_args[0]
-    assert mission_arg is Mission.SWOT_SWATH_SCIENCE
-    assert passes_arg is passes
-    assert polygon_arg is not None
 
 
 def test_passes_crossing_polygon_wraps_get_passes_crossing_polygon(mocker):
