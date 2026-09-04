@@ -38,19 +38,7 @@ def _resolve_cycle_pass_filters(
     reaches fcollections for a final selection there too.
 
     No-op if the product isn't organized by orbit cycle/pass (see
-    `_product_queryable_by_pass`). Otherwise:
-
-    1. `time`, if given, is converted into the cycles it covers, and the
-       mission is picked from `time` itself (`mission_for`).
-    2. Those cycles are intersected with an explicit `cycle_number`
-       filter, if also given.
-    3. If `time` wasn't given, the mission is instead picked from an
-       explicit `cycle_number` filter (`mission_for_cycle`), or falls
-       back to `altisearch.DEFAULT_MISSION` (Science) if there is none
-       either.
-    4. `box`, if given, is converted into that mission's passes crossing
-       it, intersected with an explicit `pass_number` filter if also
-       given.
+    `_product_queryable_by_pass`).
 
     Returns
     -------
