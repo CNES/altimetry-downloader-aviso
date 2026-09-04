@@ -7,6 +7,7 @@ import typing as tp
 import numpy as np
 import yaml
 
+from . import altimetry_search_requests as altisearch
 from .auth import ensure_credentials
 from .catalog_client.client import (
     fetch_catalog,
@@ -19,6 +20,102 @@ from .subset import subset_multiple_files
 from .tds_client import TDS_HOST, TDS_LAYOUT_CONFIG, Protocol, http_bulk_download
 
 logger = logging.getLogger(__name__)
+
+
+def _log_altisearch(step: str, mission: tp.Any, **kwargs: tp.Any) -> None:
+    """Debug-log an Altimetry Search result (cycles and/or passes found)."""
+    details = ", ".join(f"{key}={value}" for key, value in kwargs.items())
+    logger.debug("Altimetry Search %s: mission=%s, %s", step, mission, details)
+
+
+def _resolve_cycle_pass_filters(
+    product_short_name: str,
+    filters: dict[str, tp.Any],
+    box: tuple[float, float, float, float] | None,
+) -> bool:
+    """Resolve `cycle_number`/`pass_number` filters via Altimetry Search, in
+    place. `time`, if present, is left untouched in `filters` -- it still
+    reaches fcollections for a final selection there too.
+
+    No-op if the product isn't organized by orbit cycle/pass (see
+    `_product_queryable_by_pass`).
+
+    Returns
+    -------
+        `False` if the request has no result (caller should return an
+        empty list). `True` otherwise.
+
+    Raises
+    ------
+    ValueError
+        If an explicit `cycle_number` (used without `time`) spans more
+        than one mission phase, or matches none.
+    """
+    if not _product_queryable_by_pass(product_short_name):
+        return True
+
+    time = filters.get("time")
+    cycles = filters.get("cycle_number")
+    passes = filters.get("pass_number")
+
+    cycles = cycles if (cycles is None or isinstance(cycles, list)) else [cycles]
+    passes = passes if (passes is None or isinstance(passes, list)) else [passes]
+
+    if time is not None:
+        # Time -> mission + cycle range
+        mission = altisearch.mission_for(time)
+        try:
+            time_cycles = altisearch.get_selected_cycles(time, mission)
+        except altisearch.NoPassFoundError as err:
+            logger.info("%s", err)
+            return False
+        _log_altisearch("get_selected_cycles", mission, cycle_number=time_cycles)
+        # Merge with explicit cycle_number if given
+        cycles = sorted(set(cycles) & set(time_cycles)) if cycles else time_cycles
+        if not cycles:
+            logger.info(
+                "cycle_number=%s does not intersect the cycles covering "
+                "time (%s); request is inconsistent.",
+                filters.get("cycle_number"),
+                time,
+            )
+            return False
+    elif cycles:
+        # No time: mission from the explicit cycle_number instead.
+        missions = {altisearch.mission_for_cycle(c) for c in cycles}
+        if len(missions) != 1:
+            msg = f"cycle_number {cycles} spans more than one mission phase."
+            raise ValueError(msg)
+        mission = missions.pop()
+    else:
+        # No time or cycle_number: fall back to Science.
+        mission = altisearch.DEFAULT_MISSION
+        logger.warning(
+            "No time or cycle_number given: assuming the Science phase to "
+            "resolve box, which may be wrong if you're after CalVal data. "
+            "For accurate results, give a cycle_number range (or time) "
+            "matching the phase you want -- run 'query-help' (CLI) or call "
+            "filter_infos() (Python API) for help picking one."
+        )
+
+    if cycles:
+        filters["cycle_number"] = sorted(cycles)
+
+    # Box -> passes crossing it, merged with the explicit pass_number.
+    if box is not None:
+        crossing = altisearch.passes_crossing_polygon(mission, box, passes)
+        if not crossing:
+            logger.info("No pass of mission %s crosses box %s.", mission, box)
+            return False
+        _log_altisearch("passes_crossing_polygon", mission, pass_number=crossing)
+        filters["pass_number"] = crossing
+
+    logger.debug(
+        "Altimetry Search resolved filters: cycle_number=%s, pass_number=%s",
+        filters.get("cycle_number"),
+        filters.get("pass_number"),
+    )
+    return True
 
 
 def authenticate(func: tp.Callable) -> tp.Callable:
@@ -69,14 +166,26 @@ def details(product_short_name: str) -> AvisoProduct:
     return get_details(product_short_name)
 
 
+def _product_queryable_by_pass(product_short_name: str) -> bool:
+    """Whether `time`/`box` can be resolved into `cycle_number`/`pass_number`
+    via Altimetry Search for this product."""
+    with open(TDS_LAYOUT_CONFIG, encoding="utf-8") as f:
+        tds_layout = yaml.safe_load(f)
+    for product in tds_layout["products"].values():
+        if product["short_name"] == product_short_name:
+            return product.get("queryable_by_pass", True)
+    return True
+
+
 @authenticate
 def get(
     product_short_name: str,
     output_dir: str | pl.Path,
     cycle_number: int | list[int] | None = None,
     pass_number: int | list[int] | None = None,
-    time: tuple[np.datetime64, np.datetime64] | None = None,
+    time: tuple[np.datetime64, np.datetime64] | tuple[str, str] | None = None,
     version: str | None = None,
+    box: tuple[float, float, float, float] | None = None,
     overwrite: bool = False,
 ) -> list[str]:
     """Downloads a product from Aviso's Thredds Data Server.
@@ -95,8 +204,21 @@ def get(
         the period for files/folders selection
     version
         the version for files/folders selection
+    box
+        Selection box (lon_min, lat_min, lon_max, lat_max) in degrees. Longitude range
+        can be in either [0, 360[ or [-180, 180[ convention. lon_min must be inferior to
+        lon_max (the convention must be changed to verify this constraint). Always used
+        to select the granules to download.
+        `pass_number` narrows the candidate passes tested against `box` if given
+        (otherwise every pass of the mission is tested).
     overwrite: bool
         whether to overwrite files if they already exist
+
+    Raises
+    ------
+    ValueError
+        If `cycle_number` spans more than one mission phase, or matches
+        none.
 
     Returns
     -------
@@ -112,6 +234,9 @@ def get(
             ),
         )
     )
+
+    if not _resolve_cycle_pass_filters(product_short_name, filters, box):
+        return []
 
     granule_paths, _, non_target_local_files = _search_granules_with_overwrite(
         product_short_name, Protocol.HTTP, output_dir, overwrite, **filters
@@ -135,11 +260,11 @@ def subset(
     output_dir: str | pl.Path,
     cycle_number: int | list[int] | None = None,
     pass_number: int | list[int] | None = None,
-    time: tuple[np.datetime64, np.datetime64] | None = None,
+    time: tuple[np.datetime64, np.datetime64] | tuple[str, str] | None = None,
     version: str | None = None,
-    overwrite: bool = False,
     box: tuple[float, float, float, float] | None = None,
     selected_variables: list[str] | None = None,
+    overwrite: bool = False,
 ) -> list[str]:
     """Subset a product from Aviso's Thredds Data Server.
 
@@ -157,20 +282,26 @@ def subset(
         the period for files/folders selection
     version
         the version for files/folders selection
-    overwrite: bool
-        whether to overwrite files if they already exist
     box
         Selection box (lon_min, lat_min, lon_max, lat_max) in degrees. Longitude range
         can be in either [0, 360[ or [-180, 180[ convention. lon_min must be inferior to
-        lon_max (the convention must be changed to verify this constraint).
+        lon_max (the convention must be changed to verify this constraint). Used to
+        select the granules to download, and to crop downloaded datasets.
+        `pass_number` narrows the candidate passes tested against `box` if given
+        (otherwise every pass of the mission is tested).
     selected_variables
         List of variables to select.
+    overwrite: bool
+        whether to overwrite files if they already exist
 
     Raises
     ------
     NotImplementedError
         In case the input product does not support subsetting: only swath datasets on a
         (num_lines, num_pixels) grid are supported.
+    ValueError
+        If `cycle_number` spans more than one mission phase, or matches
+        none.
 
     Warns
     -----
@@ -217,13 +348,16 @@ def subset(
         )
     )
 
+    if not _resolve_cycle_pass_filters(product_short_name, filters, box):
+        return []
+
     granule_paths, target_local_files, non_target_local_files = (
         _search_granules_with_overwrite(
             product_short_name, Protocol.DAP2, output_dir, overwrite, **filters
         )
     )
 
-    logger.info("Subsetting %d granules...", len(granule_paths))
+    logger.info("Subsetting %d file(s)...", len(granule_paths))
 
     return (
         subset_multiple_files(
