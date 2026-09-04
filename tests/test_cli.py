@@ -197,7 +197,7 @@ def test_get_simple_filters(mocker, tmp_path):
         version="1.0",
         cycle_number=[1, 2],
         pass_number=None,
-        time=(None, None),
+        time=None,
         box=None,
         overwrite=False,
     )
@@ -213,7 +213,7 @@ def test_get_with_start_only(mocker, tmp_path):
     assert args["product_short_name"] == "SWOT"
     assert args["output_dir"] == tmp_path
     assert args["time"] == (
-        "2023-01-01",
+        np.datetime64("2023-01-01"),
         None,
     )
 
@@ -236,8 +236,21 @@ def test_get_with_start_and_end(mocker, tmp_path):
     assert result.exit_code == 0
     args = mocked_get.call_args.kwargs
     assert args["time"] == (
-        "2023-01-01",
-        "2023-01-05",
+        np.datetime64("2023-01-01"),
+        np.datetime64("2023-01-05"),
+    )
+
+
+def test_get_with_end_only(mocker, tmp_path):
+    mocked_get = mocker.patch.object(ac_core, "get", return_value=["file.nc"])
+    result = runner.invoke(
+        app, ["get", "SWOT", "--output", str(tmp_path), "--end", "2023-01-05"]
+    )
+    assert result.exit_code == 0
+    args = mocked_get.call_args.kwargs
+    assert args["time"] == (
+        None,
+        np.datetime64("2023-01-05"),
     )
 
 
@@ -295,8 +308,59 @@ def test_subset_simple_filters(mocker, tmp_path):
         pass_number=None,
         selected_variables=["foo", "bar"],
         box=(1, 2, 3, 4),
-        time=(None, None),
+        time=None,
         overwrite=False,
+    )
+
+
+def test_subset_with_start_only(mocker, tmp_path):
+    mocked_subset = mocker.patch.object(ac_core, "subset", return_value=["file.nc"])
+    result = runner.invoke(
+        app, ["subset", "SWOT", "--output", str(tmp_path), "--start", "2023-01-01"]
+    )
+    assert result.exit_code == 0
+    args = mocked_subset.call_args.kwargs
+    assert args["product_short_name"] == "SWOT"
+    assert args["output_dir"] == tmp_path
+    assert args["time"] == (
+        np.datetime64("2023-01-01"),
+        None,
+    )
+
+
+def test_subset_with_start_and_end(mocker, tmp_path):
+    mocked_subset = mocker.patch.object(ac_core, "subset", return_value=["file.nc"])
+    result = runner.invoke(
+        app,
+        [
+            "subset",
+            "SWOT",
+            "--output",
+            str(tmp_path),
+            "--start",
+            "2023-01-01",
+            "--end",
+            "2023-01-05",
+        ],
+    )
+    assert result.exit_code == 0
+    args = mocked_subset.call_args.kwargs
+    assert args["time"] == (
+        np.datetime64("2023-01-01"),
+        np.datetime64("2023-01-05"),
+    )
+
+
+def test_subset_with_end_only(mocker, tmp_path):
+    mocked_subset = mocker.patch.object(ac_core, "subset", return_value=["file.nc"])
+    result = runner.invoke(
+        app, ["subset", "SWOT", "--output", str(tmp_path), "--end", "2023-01-05"]
+    )
+    assert result.exit_code == 0
+    args = mocked_subset.call_args.kwargs
+    assert args["time"] == (
+        None,
+        np.datetime64("2023-01-05"),
     )
 
 

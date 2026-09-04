@@ -4,7 +4,6 @@ package)."""
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 from altimetry.search import (
     Mission,
     MissionProperties,
@@ -14,13 +13,8 @@ from altimetry.search import (
 )
 from pyinterp.geometry import geographic
 
-#: Swath missions a `time` filter can resolve to. Nadir missions share the
-#: same date ranges but are not used by this downloader.
 _SWATH_MISSIONS = (Mission.SWOT_SWATH_CALVAL, Mission.SWOT_SWATH_SCIENCE)
 
-#: Mission assumed when `box` is given with neither `time` nor
-#: `cycle_number` to resolve one from. All products currently exposed by
-#: this downloader are SWOT KaRIn science-phase products.
 DEFAULT_MISSION = Mission.SWOT_SWATH_SCIENCE
 
 
@@ -37,7 +31,7 @@ def mission_for(time: tuple[np.datetime64, np.datetime64]) -> Mission:
     ValueError
         If ``time`` falls in no known mission phase, or straddles two.
     """
-    start, end = _as_datetime64(time[0]), _as_datetime64(time[1])
+    start, end = time[0], time[1]
     loader = MissionPropertiesLoader()
     matches = [
         mission
@@ -53,8 +47,8 @@ def mission_for(time: tuple[np.datetime64, np.datetime64]) -> Mission:
 def _covers(
     properties: MissionProperties, start: np.datetime64, end: np.datetime64
 ) -> bool:
-    date_start = _as_datetime64(properties.date_start)
-    date_end = _as_datetime64(properties.date_end) if properties.date_end else None
+    date_start = np.datetime64(str(properties.date_start))
+    date_end = np.datetime64(str(properties.date_end)) if properties.date_end else None
     return start >= date_start and (date_end is None or end <= date_end)
 
 
@@ -62,8 +56,8 @@ def mission_for_cycle(cycle_number: int) -> Mission:
     """Pick the KaRIn swath mission (CalVal or Science) covering
     ``cycle_number``, using each mission's ``first_cycle``/``nb_cycle``.
 
-    Used when resolving ``box`` without a ``time`` filter, where
-    ``mission_for`` has no period to work from.
+    Used when resolving ``box``/``cycle_number`` without a ``time`` filter,
+    where ``mission_for`` has no period to work from.
 
     Raises
     ------
@@ -93,25 +87,17 @@ def _covers_cycle(properties: MissionProperties, cycle_number: int) -> bool:
     )
 
 
-def _as_datetime64(value: object) -> np.datetime64:
-    """Normalize a date-like value (np.datetime64, datetime.date, str, ...)
-    into an np.datetime64, so comparisons stay robust no matter how Altimetry
-    Search represents ``MissionProperties`` dates."""
-    return value if isinstance(value, np.datetime64) else np.datetime64(str(value))
-
-
-def selected_passes(
+def get_selected_cycles(
     time: tuple[np.datetime64, np.datetime64], mission: Mission
-) -> pd.DataFrame:
-    """Wrap ``get_selected_passes``: turns a ``(start, end)`` time filter into
-    its ``(date, search_duration)`` signature.
+) -> list[int]:
+    """Return the cycle numbers covering ``time``, for ``mission``.
 
     Raises
     ------
     NoPassFoundError
         If no pass falls in ``time``.
     """
-    start, end = _as_datetime64(time[0]), _as_datetime64(time[1])
+    start, end = time[0], time[1]
     duration = np.timedelta64(end - start)
     if duration < np.timedelta64(0, "ns"):
         msg = f"time filter start ({start}) must be before its end ({end})"
@@ -121,7 +107,7 @@ def selected_passes(
     if passes.empty:
         msg = f"No pass found for mission {mission} in period {time}"
         raise NoPassFoundError(msg)
-    return passes
+    return sorted(passes["cycle_number"].unique().tolist())
 
 
 def passes_crossing_polygon(
@@ -130,12 +116,8 @@ def passes_crossing_polygon(
     passes: list[int] | None = None,
 ) -> list[int]:
     """Wrap ``get_passes_crossing_polygon``: turns a bbox into the polygon it
-    expects, and returns a plain sorted list of pass numbers.
-
-    No notion of time is involved, and no prior ``selected_passes`` result
-    is needed: if ``passes`` is `None`, every pass of ``mission``'s orbit is
-    tested against ``box``.
-    """
+    expects, and returns a plain sorted list of pass numbers crossing the
+    polygon."""
     result = get_passes_crossing_polygon(mission, _box_to_polygon(box), passes)
     return sorted(int(p) for p in result)
 
@@ -156,12 +138,3 @@ def _box_to_polygon(box: tuple[float, float, float, float]) -> geographic.Polygo
     return geographic.Polygon(
         geographic.Ring(lons.astype(np.float64), lats.astype(np.float64))
     )
-
-
-def as_granule_filters(passes: pd.DataFrame) -> dict[str, list[int]]:
-    """Format a passes dataframe into the ``cycle_number``/``pass_number``
-    filters consumed by ``catalog_client.client.search_granules``."""
-    return {
-        "cycle_number": sorted(passes["cycle_number"].unique().tolist()),
-        "pass_number": sorted(passes["pass_number"].unique().tolist()),
-    }

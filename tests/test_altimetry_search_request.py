@@ -9,26 +9,6 @@ from altimetry_downloader_aviso import altimetry_search_requests as altisearch
 from altimetry_downloader_aviso.altimetry_search_requests import Mission
 
 # ---------------------------------------------------------------------------
-# _as_datetime64
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "value",
-    ["2023-07-21", dt.date(2023, 7, 21), np.datetime64("2023-07-21")],
-)
-def test_as_datetime64_accepts_any_date_like(value):
-    assert altisearch._as_datetime64(value) == np.datetime64("2023-07-21")
-
-
-def test_as_datetime64_does_not_rewrap_datetime64():
-    # Regression: str(np.datetime64(...)) round-trips fine too, but we should
-    # not pay for it when the value is already the right type.
-    value = np.datetime64("2023-07-21T12:00:00")
-    assert altisearch._as_datetime64(value) is value
-
-
-# ---------------------------------------------------------------------------
 # mission_for
 # ---------------------------------------------------------------------------
 
@@ -71,14 +51,18 @@ def mocked_mission_phases(mocker):
 
 def test_mission_for_calval(mocked_mission_phases):
     assert (
-        altisearch.mission_for(("2023-04-01", "2023-04-05"))
+        altisearch.mission_for(
+            (np.datetime64("2023-04-01"), np.datetime64("2023-04-05"))
+        )
         is Mission.SWOT_SWATH_CALVAL
     )
 
 
 def test_mission_for_science(mocked_mission_phases):
     assert (
-        altisearch.mission_for(("2025-01-01", "2025-01-10"))
+        altisearch.mission_for(
+            (np.datetime64("2025-01-01"), np.datetime64("2025-01-10"))
+        )
         is Mission.SWOT_SWATH_SCIENCE
     )
 
@@ -86,7 +70,9 @@ def test_mission_for_science(mocked_mission_phases):
 def test_mission_for_science_open_ended(mocked_mission_phases):
     # date_end=None for Science: any far-future date must still match.
     assert (
-        altisearch.mission_for(("2030-01-01", "2030-01-10"))
+        altisearch.mission_for(
+            (np.datetime64("2030-01-01"), np.datetime64("2030-01-10"))
+        )
         is Mission.SWOT_SWATH_SCIENCE
     )
 
@@ -95,12 +81,16 @@ def test_mission_for_gap_between_phases_raises(mocked_mission_phases):
     # Falls between CalVal's date_end and Science's date_start: matches
     # neither phase.
     with pytest.raises(ValueError, match="matches no single mission phase"):
-        altisearch.mission_for(("2023-07-12", "2023-07-15"))
+        altisearch.mission_for(
+            (np.datetime64("2023-07-12"), np.datetime64("2023-07-15"))
+        )
 
 
 def test_mission_for_straddling_phases_raises(mocked_mission_phases):
     with pytest.raises(ValueError, match="matches no single mission phase"):
-        altisearch.mission_for(("2023-06-01", "2023-08-01"))
+        altisearch.mission_for(
+            (np.datetime64("2023-06-01"), np.datetime64("2023-08-01"))
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -148,19 +138,20 @@ def test_mission_for_cycle_overlapping_phases_raises(mocker):
 
 
 # ---------------------------------------------------------------------------
-# selected_passes
+# get_selected_cycles
 # ---------------------------------------------------------------------------
 
 
-def test_selected_passes_wraps_get_selected_passes(mocker):
-    expected = pd.DataFrame({"cycle_number": [10], "pass_number": [5]})
+def test_get_selected_cycles_wraps_get_selected_passes(mocker):
+    expected = pd.DataFrame({"cycle_number": [10, 10, 11], "pass_number": [1, 2, 1]})
     mock = mocker.patch.object(altisearch, "get_selected_passes", return_value=expected)
 
-    result = altisearch.selected_passes(
-        ("2025-01-01", "2025-01-05"), Mission.SWOT_SWATH_SCIENCE
+    result = altisearch.get_selected_cycles(
+        (np.datetime64("2025-01-01"), np.datetime64("2025-01-05")),
+        Mission.SWOT_SWATH_SCIENCE,
     )
 
-    pd.testing.assert_frame_equal(result, expected)
+    assert result == [10, 11]
     mock.assert_called_once()
     mission_arg, date_arg, duration_arg = mock.call_args[0]
     assert mission_arg is Mission.SWOT_SWATH_SCIENCE
@@ -168,29 +159,20 @@ def test_selected_passes_wraps_get_selected_passes(mocker):
     assert duration_arg == np.timedelta64(4, "D")
 
 
-def test_selected_passes_accepts_str_time(mocker):
-    # Regression: core.py's CLI passes time as plain strings, not np.datetime64.
-    mock = mocker.patch.object(
-        altisearch,
-        "get_selected_passes",
-        return_value=pd.DataFrame({"cycle_number": [1], "pass_number": [1]}),
-    )
-    altisearch.selected_passes(("2025-01-01", "2025-01-02"), Mission.SWOT_SWATH_SCIENCE)
-    assert mock.call_args[0][1] == np.datetime64("2025-01-01")
-
-
-def test_selected_passes_raises_when_empty(mocker):
+def test_get_selected_cycles_raises_when_empty(mocker):
     mocker.patch.object(altisearch, "get_selected_passes", return_value=pd.DataFrame())
     with pytest.raises(altisearch.NoPassFoundError):
-        altisearch.selected_passes(
-            ("2025-01-01", "2025-01-05"), Mission.SWOT_SWATH_SCIENCE
+        altisearch.get_selected_cycles(
+            (np.datetime64("2025-01-01"), np.datetime64("2025-01-05")),
+            Mission.SWOT_SWATH_SCIENCE,
         )
 
 
-def test_selected_passes_rejects_end_before_start():
+def test_get_selected_cycles_rejects_end_before_start():
     with pytest.raises(ValueError, match="must be before its end"):
-        altisearch.selected_passes(
-            ("2025-01-05", "2025-01-01"), Mission.SWOT_SWATH_SCIENCE
+        altisearch.get_selected_cycles(
+            (np.datetime64("2025-01-05"), np.datetime64("2025-01-01")),
+            Mission.SWOT_SWATH_SCIENCE,
         )
 
 
@@ -257,21 +239,3 @@ def test_box_to_polygon_densifies_constant_latitude_edges(mocker):
     # Both constant-latitude edges (top and bottom) are present.
     assert 0 in lats
     assert 10 in lats
-
-
-# ---------------------------------------------------------------------------
-# as_granule_filters
-# ---------------------------------------------------------------------------
-
-
-def test_as_granule_filters_dedups_and_sorts():
-    passes = pd.DataFrame(
-        {
-            "cycle_number": [11, 10, 10, 11],
-            "pass_number": [5, 5, 7, 7],
-        }
-    )
-    assert altisearch.as_granule_filters(passes) == {
-        "cycle_number": [10, 11],
-        "pass_number": [5, 7],
-    }

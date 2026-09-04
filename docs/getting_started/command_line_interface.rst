@@ -51,21 +51,21 @@ This will print a concise overview of the products (short names and titles).
 .. code-block:: console
 
     $ altimetry-downloader-aviso summary
-    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ┃ Short Name                    ┃ Title                                                                                              ┃
-    ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-    │ L4_exp_with_SWOT              │ Experimental Products: Multimission Gridded (with SWOT) Level-4 Sea Surface Heights and Velocities │
-    │ SWOT_L2_LR_SSH_Basic          │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - Basic                                          │
-    │ SWOT_L2_LR_SSH_Expert         │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - Expert                                         │
-    │ SWOT_L2_LR_SSH_Unsmoothed     │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - Unsmoothed                                     │
-    │ SWOT_L2_LR_SSH_WindWave       │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - WindWave                                       │
-    │ SWOT_L3_LR_SSH_Basic          │ Altimetry product SWOT Level-3 Low Rate SSH - Basic                                                │
-    │ SWOT_L3_LR_SSH_Expert         │ Altimetry product SWOT Level-3 Low Rate SSH - Expert                                               │
-    │ SWOT_L3_LR_SSH_Technical      │ Altimetry product SWOT Level-3 Low Rate SSH - Technical                                            │
-    │ SWOT_L3_LR_SSH_Unsmoothed     │ Altimetry product SWOT Level-3 Low Rate SSH - Unsmoothed                                           │
-    │ SWOT_L3_LR_WIND_WAVE_Extended │ Wind & Wave product SWOT Level-3 WindWave - Extended                                               │
-    │ SWOT_L3_LR_WIND_WAVE_Light    │ Wind & Wave product SWOT Level-3 WindWave - Light                                                  │
-    └───────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────┘
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃ Short Name                    ┃ Title                                                                                                          ┃
+    ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+    │ L4_with_SWOT                  │ Experimental Products: Multimission Gridded (with SWOT, MIOST only) Level-4 Sea Surface Heights and Velocities │
+    │ SWOT_L2_LR_SSH_Basic          │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - Basic                                                      │
+    │ SWOT_L2_LR_SSH_Expert         │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - Expert                                                     │
+    │ SWOT_L2_LR_SSH_Unsmoothed     │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - Unsmoothed                                                 │
+    │ SWOT_L2_LR_SSH_WindWave       │ Altimetry product SWOT Level-2 KaRIn Low Rate SSH - WindWave                                                   │
+    │ SWOT_L3_LR_SSH_Basic          │ Altimetry product SWOT Level-3 Low Rate SSH - Basic                                                            │
+    │ SWOT_L3_LR_SSH_Expert         │ Altimetry product SWOT Level-3 Low Rate SSH - Expert                                                           │
+    │ SWOT_L3_LR_SSH_Technical      │ Altimetry product SWOT Level-3 Low Rate SSH - Technical                                                        │
+    │ SWOT_L3_LR_SSH_Unsmoothed     │ Altimetry product SWOT Level-3 Low Rate SSH - Unsmoothed                                                       │
+    │ SWOT_L3_LR_WIND_WAVE_Extended │ Wind & Wave product SWOT Level-3 WindWave - Extended                                                           │
+    │ SWOT_L3_LR_WIND_WAVE_Light    │ Wind & Wave product SWOT Level-3 WindWave - Light                                                              │
+    └───────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 .. _cli_details:
 
@@ -180,15 +180,43 @@ This command downloads Swot LR L3 Basic, in the period from 2025-01-01 to 2025-0
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --start 2025-01-01 --end 2025-01-02 --cycle 26
-    Downloaded files (2) :
-    - aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v3.0.nc
-    - aviso_dir/SWOT_L3_LR_SSH_Basic_007_013_20231123T202138_20231123T211304_v3.0.nc
+    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --start 2025-01-01 --end 2025-01-02
+    Local files (29) :
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_229_20241231T235043_20250101T004209_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_230_20250101T004210_20250101T013336_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_231_20250101T013336_20250101T022503_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_232_20250101T022504_20250101T031630_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_233_20250101T031630_20250101T040757_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_234_20250101T040757_20250101T045923_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_235_20250101T045924_20250101T055051_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_236_20250101T055051_20250101T064217_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_237_20250101T064217_20250101T073344_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_238_20250101T073344_20250101T082510_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_239_20250101T082511_20250101T091637_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_240_20250101T091638_20250101T100804_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_241_20250101T100805_20250101T105931_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_242_20250101T105932_20250101T115058_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_243_20250101T115058_20250101T124225_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_244_20250101T124225_20250101T133351_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_245_20250101T133352_20250101T142518_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_246_20250101T142519_20250101T151645_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_247_20250101T151646_20250101T160812_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_248_20250101T160813_20250101T165939_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_249_20250101T165939_20250101T175106_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_250_20250101T175106_20250101T184232_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_251_20250101T184233_20250101T193359_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_252_20250101T193400_20250101T202526_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_253_20250101T202527_20250101T211653_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_254_20250101T211653_20250101T220820_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_255_20250101T220820_20250101T225946_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_256_20250101T225947_20250101T235114_v3.0.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_026_257_20250101T235114_20250102T004240_v3.0.nc
 
 
-.. caution::
+.. note::
 
-    A request with only ``start`` / ``--end`` filters will take more time to compute, since it needs to browse all files to find ones included in the date range. Please provide a ``--cycle`` filter when possible.
+    Requests with ``start`` / ``--end`` filters call the `Altimetry Search <https://github.com/CNES/altimetry-search>`_ tool to find the granules that match the requested time range.
+    The ``--cycle`` and ``--pass`` filters are then applied to the list of granules returned by the search tool.
 
 **Example with version filter:**
 

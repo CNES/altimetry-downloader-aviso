@@ -21,222 +21,112 @@ from .tds_client import TDS_HOST, TDS_LAYOUT_CONFIG, Protocol, http_bulk_downloa
 
 logger = logging.getLogger(__name__)
 
-#: Sentinel returned by _resolve_selected_passes when no `time` filter was
-#: given, to distinguish from "time given but matches no pass" (None).
-_NO_TIME_FILTER = object()
+
+def _log_altisearch(step: str, mission: tp.Any, **kwargs: tp.Any) -> None:
+    """Debug-log an Altimetry Search result (cycles and/or passes found)."""
+    details = ", ".join(f"{key}={value}" for key, value in kwargs.items())
+    logger.debug("Altimetry Search %s: mission=%s, %s", step, mission, details)
 
 
-def _log_passes(step: str, mission: tp.Any, passes: tp.Any) -> None:
-    """Debug-log an Altimetry Search result: cycles/passes involved."""
-    logger.debug(
-        "Altimetry Search %s: mission=%s, %d pass(es), cycle_number=%s, "
-        "pass_number=%s",
-        step,
-        mission,
-        len(passes),
-        (
-            sorted(passes["cycle_number"].unique().tolist())
-            if "cycle_number" in passes
-            else "n/a"
-        ),
-        sorted(passes["pass_number"].unique().tolist()),
-    )
-
-
-def _resolve_filters(
+def _resolve_cycle_pass_filters(
     product_short_name: str,
     filters: dict[str, tp.Any],
     box: tuple[float, float, float, float] | None,
 ) -> bool:
-    """Resolve `time` (and `box`, if given) into `cycle_number`/ `pass_number`
-    filters via Altimetry Search, in place.
+    """Resolve `cycle_number`/`pass_number` filters via Altimetry Search, in
+    place. `time`, if present, is left untouched in `filters` -- it still
+    reaches fcollections for a final selection there too.
 
     No-op if the product isn't organized by orbit cycle/pass (see
-    `_product_queryable_by_pass`). If no `time` filter was given, `box`
-    (if any) is resolved directly from `cycle_number`/`pass_number`
-    instead, however much of either is given -- see `_resolve_box_only`.
+    `_product_queryable_by_pass`). Otherwise:
+
+    1. `time`, if given, is converted into the cycles it covers, and the
+       mission is picked from `time` itself (`mission_for`).
+    2. Those cycles are intersected with an explicit `cycle_number`
+       filter, if also given.
+    3. If `time` wasn't given, the mission is instead picked from an
+       explicit `cycle_number` filter (`mission_for_cycle`), or falls
+       back to `altisearch.DEFAULT_MISSION` (Science) if there is none
+       either.
+    4. `box`, if given, is converted into that mission's passes crossing
+       it, intersected with an explicit `pass_number` filter if also
+       given.
 
     Returns
     -------
         `False` if the request has no result (caller should return an
         empty list). `True` otherwise.
+
+    Raises
+    ------
+    ValueError
+        If an explicit `cycle_number` (used without `time`) spans more
+        than one mission phase, or matches none.
     """
     if not _product_queryable_by_pass(product_short_name):
         return True
 
-    resolved = _resolve_selected_passes(filters)
-    if resolved is None:
-        return False
-    if resolved is _NO_TIME_FILTER:
-        if box is None:
-            return True
-        return _resolve_box_only(
-            filters, box, filters.get("cycle_number"), filters.get("pass_number")
-        )
+    time = filters.get("time")
+    cycles = filters.get("cycle_number")
+    passes = filters.get("pass_number")
 
-    mission, passes = resolved
-    if box is not None:
-        # Chain selected_passes -> passes_crossing_polygon: keep only the
-        # passes whose ground track crosses box.
-        candidates = sorted(passes["pass_number"].unique().tolist())
-        crossing = altisearch.passes_crossing_polygon(mission, box, candidates)
-        if not crossing:
-            logger.info("No pass of mission %s crosses box %s.", mission, box)
+    cycles = cycles if (cycles is None or isinstance(cycles, list)) else [cycles]
+    passes = passes if (passes is None or isinstance(passes, list)) else [passes]
+
+    if time is not None:
+        # Time -> mission + cycle range
+        mission = altisearch.mission_for(time)
+        try:
+            time_cycles = altisearch.get_selected_cycles(time, mission)
+        except altisearch.NoPassFoundError as err:
+            logger.info("%s", err)
             return False
-        logger.debug(
-            "Altimetry Search passes crossing box: mission=%s, pass_number=%s",
-            mission,
-            crossing,
-        )
-        passes = passes[passes["pass_number"].isin(crossing)]
-        _log_passes("passes retained after bbox filtering", mission, passes)
-
-    return _apply_selected_passes(filters, passes)
-
-
-def _resolve_box_only(
-    filters: dict[str, tp.Any],
-    box: tuple[float, float, float, float],
-    cycle_number: int | list[int] | None,
-    pass_number: int | list[int] | None,
-) -> bool:
-    """Resolve `box` into a `pass_number` filter without a `time` period.
-
-    Without `time`, there is no `selected_passes` result to work from and
-    no period to pick a mission from (see `mission_for`). `cycle_number`
-    picks the mission instead (via `mission_for_cycle`) if given; if not,
-    falls back to `altisearch.DEFAULT_MISSION` (every product currently
-    exposed by this downloader is Science-phase).
-
-    Returns
-    -------
-        `False` if no candidate pass crosses `box` (caller should return
-        an empty result). `True` otherwise, with `filters["pass_number"]`
-        set/narrowed in place.
-    """
-    if cycle_number is not None:
-        cycles = cycle_number if isinstance(cycle_number, list) else [cycle_number]
+        _log_altisearch("get_selected_cycles", mission, cycle_number=time_cycles)
+        # Merge with explicit cycle_number if given
+        cycles = sorted(set(cycles) & set(time_cycles)) if cycles else time_cycles
+        if not cycles:
+            logger.info(
+                "cycle_number=%s does not intersect the cycles covering "
+                "time (%s); request is inconsistent.",
+                filters.get("cycle_number"),
+                time,
+            )
+            return False
+    elif cycles:
+        # No time: mission from the explicit cycle_number instead.
         missions = {altisearch.mission_for_cycle(c) for c in cycles}
         if len(missions) != 1:
-            msg = f"cycle_number {cycle_number} spans more than one mission phase."
+            msg = f"cycle_number {cycles} spans more than one mission phase."
             raise ValueError(msg)
         mission = missions.pop()
     else:
+        # No time or cycle_number: fall back to Science.
         mission = altisearch.DEFAULT_MISSION
+        logger.warning(
+            "No time or cycle_number given: assuming the Science phase to "
+            "resolve box, which may be wrong if you're after CalVal data. "
+            "For accurate results, give a cycle_number range (or time) "
+            "matching the phase you want -- run 'query-help' (CLI) or call "
+            "filter_infos() (Python API) for help picking one."
+        )
 
-    candidates = altisearch.passes_crossing_polygon(mission, box, pass_number)
-    if not candidates:
-        logger.info("No pass of mission %s crosses box %s.", mission, box)
-        return False
+    if cycles:
+        filters["cycle_number"] = sorted(cycles)
+
+    # Box -> passes crossing it, merged with the explicit pass_number.
+    if box is not None:
+        crossing = altisearch.passes_crossing_polygon(mission, box, passes)
+        if not crossing:
+            logger.info("No pass of mission %s crosses box %s.", mission, box)
+            return False
+        _log_altisearch("passes_crossing_polygon", mission, pass_number=crossing)
+        filters["pass_number"] = crossing
+
     logger.debug(
-        "Altimetry Search passes crossing box: mission=%s, pass_number=%s",
-        mission,
-        candidates,
+        "Altimetry Search resolved filters: cycle_number=%s, pass_number=%s",
+        filters.get("cycle_number"),
+        filters.get("pass_number"),
     )
-
-    if pass_number is not None:
-        given = pass_number if isinstance(pass_number, list) else [pass_number]
-        excluded = sorted(set(given) - set(candidates))
-        if excluded:
-            logger.info(
-                "box %s excludes pass_number=%s; keeping pass_number=%s.",
-                box,
-                excluded,
-                candidates,
-            )
-
-    filters["pass_number"] = candidates
-    return True
-
-
-def _is_empty_time(time: tp.Any) -> bool:
-    """True if `time` carries no actual period: `None`, or a tuple whose bounds
-    are all `None`."""
-    return time is None or (isinstance(time, tuple) and all(b is None for b in time))
-
-
-def _resolve_selected_passes(
-    filters: dict[str, tp.Any],
-) -> tuple[altisearch.Mission, tp.Any] | None | object:
-    """Resolve the `time` filter into the passes it covers via Altimetry
-    Search.
-
-    Returns
-    -------
-        `_NO_TIME_FILTER` if no `time` filter was given. `None` if `time`
-        was given but matches no pass at all. Else `(mission, passes)`.
-    """
-    if "time" not in filters:
-        return _NO_TIME_FILTER
-
-    time = filters["time"]
-    if _is_empty_time(time):
-        del filters["time"]
-        return _NO_TIME_FILTER
-    start, end = time
-    if start is None or end is None:
-        msg = f"time filter needs both --start and --end (got {time})"
-        raise ValueError(msg)
-
-    mission = altisearch.mission_for(time)
-    try:
-        passes = altisearch.selected_passes(time, mission)
-    except altisearch.NoPassFoundError as err:
-        logger.info("%s", err)
-        return None
-    _log_passes("selected_passes", mission, passes)
-    return mission, passes
-
-
-def _intersect(explicit: int | list[int], resolved: list[int]) -> list[int]:
-    """Values in `explicit` (int or list[int]) that are also in `resolved`."""
-    values = explicit if isinstance(explicit, list) else [explicit]
-    return sorted(set(values) & set(resolved))
-
-
-def _apply_selected_passes(filters: dict[str, tp.Any], passes: tp.Any) -> bool:
-    """Merge resolved passes into filters.
-
-    If `cycle_number`/`pass_number` were given explicitly together with
-    `time`, they are narrowed down to their intersection with the passes
-    resolved from `time` -- keeping only the values that match both. An
-    empty intersection on either one means the request is inconsistent.
-
-    Returns
-    -------
-        `False` if the request is inconsistent (caller should return an
-        empty result). `True` otherwise, with `filters` updated in place.
-    """
-    granule_filters = altisearch.as_granule_filters(passes)
-
-    explicit_cycle = filters.get("cycle_number")
-    if explicit_cycle is not None:
-        cycle_number = _intersect(explicit_cycle, granule_filters["cycle_number"])
-        if not cycle_number:
-            logger.info(
-                "cycle_number=%s does not intersect the cycles resolved "
-                "from time (%s); request is inconsistent.",
-                explicit_cycle,
-                granule_filters["cycle_number"],
-            )
-            return False
-        granule_filters["cycle_number"] = cycle_number
-
-    explicit_pass = filters.get("pass_number")
-    if explicit_pass is not None:
-        pass_number = _intersect(explicit_pass, granule_filters["pass_number"])
-        if not pass_number:
-            logger.info(
-                "pass_number=%s does not intersect the passes resolved "
-                "from time (%s); request is inconsistent.",
-                explicit_pass,
-                granule_filters["pass_number"],
-            )
-            return False
-        granule_filters["pass_number"] = pass_number
-
-    logger.debug("Altimetry Search resolved granule filters: %s", granule_filters)
-    filters.update(granule_filters)
     return True
 
 
@@ -289,8 +179,8 @@ def details(product_short_name: str) -> AvisoProduct:
 
 
 def _product_queryable_by_pass(product_short_name: str) -> bool:
-    """Whether `time` can be resolved into `cycle_number`/`pass_number` via
-    Altimetry Search for this product."""
+    """Whether `time`/`box` can be resolved into `cycle_number`/`pass_number`
+    via Altimetry Search for this product."""
     with open(TDS_LAYOUT_CONFIG, encoding="utf-8") as f:
         tds_layout = yaml.safe_load(f)
     for product in tds_layout["products"].values():
@@ -342,7 +232,8 @@ def get(
     Raises
     ------
     ValueError
-        If `cycle_number` spans more than one mission phase.
+        If `cycle_number` spans more than one mission phase, or matches
+        none.
 
     Returns
     -------
@@ -359,7 +250,7 @@ def get(
         )
     )
 
-    if not _resolve_filters(product_short_name, filters, box):
+    if not _resolve_cycle_pass_filters(product_short_name, filters, box):
         return []
 
     granule_paths, _, non_target_local_files = _search_granules_with_overwrite(
@@ -424,6 +315,9 @@ def subset(
     NotImplementedError
         In case the input product does not support subsetting: only swath datasets on a
         (num_lines, num_pixels) grid are supported.
+    ValueError
+        If `cycle_number` spans more than one mission phase, or matches
+        none.
 
     Warns
     -----
@@ -470,7 +364,7 @@ def subset(
         )
     )
 
-    if not _resolve_filters(product_short_name, filters, box):
+    if not _resolve_cycle_pass_filters(product_short_name, filters, box):
         return []
 
     granule_paths, target_local_files, non_target_local_files = (
