@@ -6,8 +6,8 @@ Here are more detailed examples of how to use the Python Interface of the ``alti
 Download Usage
 --------------
 
-Download a product using :func:`altimetry_downloader_aviso.get()` function.
-This function filters granules from the Aviso'TDS server and downloads files using Https protocol.
+Download a product using :func:`altimetry_downloader_aviso.get()` function. It filters granules from the Aviso'TDS server and downloads files using Https protocol.
+
 Cycle/pass, time, version and box filters are available.
 
 .. code-block:: python
@@ -103,8 +103,8 @@ By default, already existing files are not re-downloaded. Use ``overwrite=True``
 Download a subset
 -----------------
 
-Downloading a subset of a product using :func:`altimetry_downloader_aviso.subset()` function.
-This function filters granules from the Aviso'TDS server, subset the datasets using OpenDAP protocol, and writes a subset file.
+Downloading a subset of a product using :func:`altimetry_downloader_aviso.subset()` function. It filters granules from the Aviso'TDS server, subset the datasets using OpenDAP protocol, and writes a subset file.
+
 Cycle/pass, time, version and box filters are available.
 
 The ``box`` filter can be used to download a spatial subset of the product. It should be provided as a tuple of four floats: (lon_min, lat_min, lon_max, lat_max).
@@ -118,9 +118,9 @@ An additional ``selected_variables`` filter can be used to download only a subse
 .. code-block:: pycon
 
     >>> local_files = subset("SWOT_L3_LR_SSH_Unsmoothed", box=(-10, 10, 10, 40), selected_variables=["ssha_unfiltered", "time"], output_dir="aviso_dir", cycle_number=1, pass_number=[223, 225, 236], version="3.0")
-    INFO     Fetching products from Aviso's catalog...                                                                                                                                                                                                                                    client.py:42
-    INFO     Fetching products from Aviso's catalog...                                                                                                                                                                                                                                    client.py:42
-    INFO     Filtering SWOT_L3_LR_SSH_Unsmoothed product with filters {'cycle_number': [1], 'pass_number': [223], 'version': '2.0.1'}...                                                                                                                                      granule_discoverer.py:41
-    INFO     Subsetting 1 file(s)...                                                                                                                                                                                                                                                      core.py:360
-    Local files (1) :
-    - aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_223_20230729T035501_20230729T044628_v2.0.1.nc
+    INFO     Fetching products from Aviso's catalog...
+    INFO     Fetching products from Aviso's catalog...
+    INFO     Filtering SWOT_L3_LR_SSH_Unsmoothed product with filters {'cycle_number': [1], 'pass_number': [223], 'version': '2.0.1'}...
+    INFO     Subsetting 1 file(s)...
+    >>> print(local_files)
+    ['aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_223_20230729T035501_20230729T044628_v3.0.nc']
