@@ -22,6 +22,12 @@ class NoPassFoundError(Exception):
     """No pass of the mission's orbit falls in the requested time range."""
 
 
+def as_datetime64(value: object) -> np.datetime64:
+    """Normalize a date-like value (np.datetime64, datetime.date, str, ...)
+    into an np.datetime64."""
+    return value if isinstance(value, np.datetime64) else np.datetime64(str(value))
+
+
 def mission_for(time: tuple[np.datetime64, np.datetime64]) -> Mission:
     """Pick the KaRIn swath mission (CalVal or Science) covering ``time``,
     using each mission's ``date_start``/``date_end``.
@@ -31,7 +37,7 @@ def mission_for(time: tuple[np.datetime64, np.datetime64]) -> Mission:
     ValueError
         If ``time`` falls in no known mission phase, or straddles two.
     """
-    start, end = time[0], time[1]
+    start, end = as_datetime64(time[0]), as_datetime64(time[1])
     loader = MissionPropertiesLoader()
     matches = [
         mission
@@ -47,8 +53,8 @@ def mission_for(time: tuple[np.datetime64, np.datetime64]) -> Mission:
 def _covers(
     properties: MissionProperties, start: np.datetime64, end: np.datetime64
 ) -> bool:
-    date_start = np.datetime64(str(properties.date_start))
-    date_end = np.datetime64(str(properties.date_end)) if properties.date_end else None
+    date_start = as_datetime64(properties.date_start)
+    date_end = as_datetime64(properties.date_end) if properties.date_end else None
     return start >= date_start and (date_end is None or end <= date_end)
 
 
@@ -97,7 +103,7 @@ def get_selected_cycles(
     NoPassFoundError
         If no pass falls in ``time``.
     """
-    start, end = time[0], time[1]
+    start, end = as_datetime64(time[0]), as_datetime64(time[1])
     duration = np.timedelta64(end - start)
     if duration < np.timedelta64(0, "ns"):
         msg = f"time filter start ({start}) must be before its end ({end})"

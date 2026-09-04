@@ -183,10 +183,10 @@ def get(
     output_dir: str | pl.Path,
     cycle_number: int | list[int] | None = None,
     pass_number: int | list[int] | None = None,
-    time: tuple[np.datetime64, np.datetime64] | None = None,
+    time: tuple[np.datetime64, np.datetime64] | tuple[str, str] | None = None,
     version: str | None = None,
-    overwrite: bool = False,
     box: tuple[float, float, float, float] | None = None,
+    overwrite: bool = False,
 ) -> list[str]:
     """Downloads a product from Aviso's Thredds Data Server.
 
@@ -204,8 +204,6 @@ def get(
         the period for files/folders selection
     version
         the version for files/folders selection
-    overwrite: bool
-        whether to overwrite files if they already exist
     box
         Selection box (lon_min, lat_min, lon_max, lat_max) in degrees. Longitude range
         can be in either [0, 360[ or [-180, 180[ convention. lon_min must be inferior to
@@ -213,6 +211,8 @@ def get(
         to select the granules to download.
         `pass_number` narrows the candidate passes tested against `box` if given
         (otherwise every pass of the mission is tested).
+    overwrite: bool
+        whether to overwrite files if they already exist
 
     Raises
     ------
@@ -260,11 +260,11 @@ def subset(
     output_dir: str | pl.Path,
     cycle_number: int | list[int] | None = None,
     pass_number: int | list[int] | None = None,
-    time: tuple[np.datetime64, np.datetime64] | None = None,
+    time: tuple[np.datetime64, np.datetime64] | tuple[str, str] | None = None,
     version: str | None = None,
-    overwrite: bool = False,
     box: tuple[float, float, float, float] | None = None,
     selected_variables: list[str] | None = None,
+    overwrite: bool = False,
 ) -> list[str]:
     """Subset a product from Aviso's Thredds Data Server.
 
@@ -282,8 +282,6 @@ def subset(
         the period for files/folders selection
     version
         the version for files/folders selection
-    overwrite: bool
-        whether to overwrite files if they already exist
     box
         Selection box (lon_min, lat_min, lon_max, lat_max) in degrees. Longitude range
         can be in either [0, 360[ or [-180, 180[ convention. lon_min must be inferior to
@@ -291,9 +289,10 @@ def subset(
         select the granules to download, and to crop downloaded datasets.
         `pass_number` narrows the candidate passes tested against `box` if given
         (otherwise every pass of the mission is tested).
-
     selected_variables
         List of variables to select.
+    overwrite: bool
+        whether to overwrite files if they already exist
 
     Raises
     ------
@@ -358,7 +357,7 @@ def subset(
         )
     )
 
-    logger.info("Subsetting %d granules...", len(granule_paths))
+    logger.info("Subsetting %d file(s)...", len(granule_paths))
 
     return (
         subset_multiple_files(
