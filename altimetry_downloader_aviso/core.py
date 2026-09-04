@@ -219,14 +219,11 @@ def get(
     overwrite: bool
         whether to overwrite files if they already exist
     box
-        Selection box (lon_min, lat_min, lon_max, lat_max) in degrees, used
-        to restrict downloaded granules to those whose ground track
-        crosses it (via Altimetry Search). Unlike `subset`, `get` never
-        crops file content: `box` only has an effect through Altimetry
-        Search. If `time` is set, it narrows the passes resolved from
-        `time`. Otherwise, `cycle_number` picks the mission if given
-        (falling back to the Science phase otherwise), and `pass_number`
-        narrows the candidate passes tested against `box` if given
+        Selection box (lon_min, lat_min, lon_max, lat_max) in degrees. Longitude range
+        can be in either [0, 360[ or [-180, 180[ convention. lon_min must be inferior to
+        lon_max (the convention must be changed to verify this constraint). Always used
+        to select the granules to download.
+        `pass_number` narrows the candidate passes tested against `box` if given
         (otherwise every pass of the mission is tested).
 
     Raises
@@ -302,11 +299,11 @@ def subset(
     box
         Selection box (lon_min, lat_min, lon_max, lat_max) in degrees. Longitude range
         can be in either [0, 360[ or [-180, 180[ convention. lon_min must be inferior to
-        lon_max (the convention must be changed to verify this constraint). Always used
-        to crop the content of downloaded granules. Also always used beforehand, via
-        Altimetry Search, to restrict which granules are downloaded in the first place:
-        chained with `time` if set, otherwise with `cycle_number`/`pass_number` if given
-        (falling back to every pass of the Science-phase mission otherwise).
+        lon_max (the convention must be changed to verify this constraint). Used to
+        select the granules to download, and to crop downloaded datasets.
+        `pass_number` narrows the candidate passes tested against `box` if given
+        (otherwise every pass of the mission is tested).
+
     selected_variables
         List of variables to select.
 
