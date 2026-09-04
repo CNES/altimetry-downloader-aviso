@@ -7,6 +7,17 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 class GcoCharacterString(BaseModel):
     text: str = Field(..., alias="#text")
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_plain_string(cls, data: Any) -> Any:
+        # Geonetwork sometimes returns a bare string instead of the usual
+        # {'#text': '...'} wrapper for gco:CharacterString (seen on
+        # cit:linkage/cit:description entries with @gco:nilReason set but
+        # a value present anyway).
+        if isinstance(data, str):
+            return {"#text": data}
+        return data
+
 
 class CitEmail(BaseModel):
     gco_CharacterString: GcoCharacterString = Field(..., alias="gco:CharacterString")
@@ -124,6 +135,17 @@ class GexGeographicElement(BaseModel):
 class GmlTimePeriod(BaseModel):
     gml_beginPosition: datetime = Field(..., alias="gml:beginPosition")
     gml_endPosition: datetime | None = Field(None, alias="gml:endPosition")
+
+    @field_validator("gml_endPosition", mode="before")
+    @classmethod
+    def normalize_indeterminate_position(cls, data: Any) -> Any:
+        # gml:endPosition can be {'@indeterminatePosition': 'now'} instead
+        # of a real date, meaning the period is still ongoing -- treat as
+        # no upper bound (consistent with MissionProperties.date_end=None
+        # elsewhere in this codebase).
+        if isinstance(data, dict) and "@indeterminatePosition" in data:
+            return None
+        return data
 
 
 class GexExtent(BaseModel):

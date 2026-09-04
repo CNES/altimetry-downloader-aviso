@@ -33,7 +33,7 @@ products:
     catalog_path: dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/
     subset: True
     filters:
-      version: '2.0.1'
+      version: '3.0'
       subset: Unsmoothed
 
   2652e825-9ade-435c-afdd-eb920d01b018:
