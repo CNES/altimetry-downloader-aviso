@@ -107,8 +107,8 @@ Retrieve detailed metadata for a specific Aviso product using ``details`` comman
     │ │ Level                     │ L3                                                                                                                                                                                                                                                                               │ │
     │ │ URL                       │ https://tds%40odatis-ocean.fr:odatis@tds-odatis.aviso.altimetry.fr/thredds/catalog/L3/SWOT_KARIN-L3_LR_SSH.html                                                                                                                                                                  │ │
     │ │ DOI                       │ https://doi.org/10.24400/527896/A01-2023.017                                                                                                                                                                                                                                     │ │
-    │ │ Last Update               │ 2025-11-26 23:00:00+00:00                                                                                                                                                                                                                                                  │ │
-    │ │ Last Version              │ v3.0                                                                                                                                                                                                                                                                           │ │
+    │ │ Last Update               │ 2025-11-26 23:00:00+00:00                                                                                                                                                                                                                                                        │ │
+    │ │ Last Version              │ v3.0                                                                                                                                                                                                                                                                             │ │
     │ │ Credit                    │ CDS-AVISO                                                                                                                                                                                                                                                                        │ │
     │ │ Organisation              │ AVISO                                                                                                                                                                                                                                                                            │ │
     │ │ Contact                   │ aviso@altimetry.fr                                                                                                                                                                                                                                                               │ │
@@ -127,7 +127,7 @@ Download a given Aviso product using ``get`` command.
 
 .. code-block:: bash
 
-   altimetry-downloader-aviso get <product_short_name> --output <directory> [--cycle <comma separated values/ranges>>] [--pass <comma separated values/ranges>] [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--version <product version>]
+   altimetry-downloader-aviso get <product_short_name> --output <directory> [--cycle <comma separated values/ranges>>] [--pass <comma separated values/ranges>] [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--version <product version>] [--box <box>]
 
 .. _cli_help_query:
 
@@ -147,10 +147,10 @@ This information can be used to configure the ``get`` command arguments filterin
     │ CALVAL  │ Temporal Coverage │ [2023-03-28T23:44:17.000000, 2023-07-10T09:12:05.000000] │ --start, --end  │
     │         │ Half Orbit Range  │ ((474, 3), (578, 4))                                     │ --cycle, --pass │
     ├─────────┼───────────────────┼──────────────────────────────────────────────────────────┼─────────────────┤
-    │ SCIENCE │ Temporal Coverage │ [2023-07-26T12:27:56.000000, 2026-06-22T20:46:05.000000] │ --start, --end  │
-    │         │ Half Orbit Range  │ ((1, 149), (52, 99))                                     │ --cycle, --pass │
+    │ SCIENCE │ Temporal Coverage │ [2023-07-26T12:27:56.000000, 2026-08-31T20:30:51.000000] │ --start, --end  │
+    │         │ Half Orbit Range  │ ((1, 149), (55, 306))                                    │ --cycle, --pass │
     ├─────────┼───────────────────┼──────────────────────────────────────────────────────────┼─────────────────┤
-    │ All     │ Versions          │ 1.0.2, 2.0, 2.0.1, 3.0                                   │ --version       │
+    │ All     │ Versions          │ 2.0.1, 3.0                                               │ --version       │
     └─────────┴───────────────────┴──────────────────────────────────────────────────────────┴─────────────────┘
 
 .. _cli_get:
@@ -176,7 +176,7 @@ This command downloads Swot LR L3 Basic, cycle number 7, half-orbits 12-13, and 
 
 Use ``--start`` and ``--end`` options to filter files by date range.
 
-This command downloads Swot LR L3 Basic, in the period from 2025-01-01 to 2025-01-02, cycle number 26, and stores the requested files to /aviso_dir.
+This command downloads Swot LR L3 Basic, in the period from 2025-01-01 to 2025-01-02, and stores the requested files to /aviso_dir.
 
 .. code-block:: console
 
@@ -215,21 +215,50 @@ This command downloads Swot LR L3 Basic, in the period from 2025-01-01 to 2025-0
 
 .. note::
 
-    Requests with ``start`` / ``--end`` filters call the `Altimetry Search <https://github.com/CNES/altimetry-search>`_ tool to find the granules that match the requested time range.
-    The ``--cycle`` and ``--pass`` filters are then applied to the list of granules returned by the search tool.
+    Requests with ``start`` / ``--end`` filters call the `Altimetry Search <https://github.com/CNES/altimetry-search>`_ tool to find the cycles matching the requested time range.
+    The ``--cycle`` filter is then applied to the list of granules returned by the search tool. This considerably accelerates the granules selection process.
 
 **Example with version filter:**
 
 By default, the latest version of the product is downloaded. Use ``--version`` option to specify a different version.
 
-This command downloads Swot LR L3 Basic, cycle number 7, half-orbit 12, version 1.0.2, and stores the requested files to /aviso_dir.
+This command downloads Swot LR L3 Basic, cycle number 7, half-orbit 12, version 2.0.1, and stores the requested files to /aviso_dir.
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --cycle 7 --pass 12 --version 1.0.2
-    Downloaded files (1) :
-    - aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v1.0.2.nc
+    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --cycle 7 --pass 12 --version 2.0.1
+    Local files (1) :
+    - aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v2.0.1.nc
 
+**Example with box filter:**
+
+Use ``--box``  option to download files representing passes that fall within the specified bounding box.
+
+.. caution::
+
+    Since unsmoothed products are very large, it is recommended to use the ``subset`` command with filters to reduce the amount of data loaded, instead of downloading the entire passes with the ``get`` command.
+
+This command downloads Swot LR L3 Unsmoothed passes that cross the specified bounding box (lon_min, lat_min, lon_max, lat_max)=(-10,10,10,40), and stores the requested files to /aviso_dir.
+
+.. code-block:: console
+
+    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Unsmoothed --output aviso_dir --box -10,10,10,40  --cycle 1 --pass 154,169,236,401
+    Local files (2) :
+    - aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_169_20230727T053653_20230727T062820_v2.0.1.nc
+    - aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_154_20230726T164516_20230726T173637_v2.0.1.nc
+
+.. caution::
+
+    If no ``--start``, ``--end`` nor ``--cycle`` aren't provided in the request, the command will download all the passes that cross the specified bounding box. This can result in a large number of files being downloaded.
+
+    Furthermore, the requested phase cannot be determined without a ``--start``, ``--end`` or ``--cycle`` filter, so the `Science` phase is selected by default.
+
+    Therefore, it is recommended to use the ``--start``, ``--end`` or ``--cycle`` options to limit the time range of the request, and determine the phase of the mission.
+
+.. note::
+
+    `Altimetry Search <https://github.com/CNES/altimetry-search>`_ tool is called to find the passes that cross the bounding box.
+    If passes are selected with the ``--pass`` option, it narrows the candidate passes tested against the bounding box. If a pass does not cross the bounding box, it will not be downloaded.
 
 .. _cli_subset:
 
@@ -250,12 +279,9 @@ parametrized with:
 
    altimetry-downloader-aviso subset <product_short_name> --output <directory> [--cycle <comma separated values/ranges>>] [--pass <comma separated values/ranges>] [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--version <product version>] [--variables <selected variables>] [--box <box>]
 
-The filters used in the ``get`` command (cycle, pass, start, end, version) should also
+The filters used in the ``get`` command (cycle, pass, start, end, version, box) should also
 be used to find the granules prior the subsetting. If a granule does not contain any
 data in the area of interest, it will not be downloaded.
-
-It is advised to refer to the `Altimetry Search tool <https://github.com/CNES/altimetry-search>`_
-in order to find the track falling in a given area.
 
 .. note::
 
@@ -270,11 +296,22 @@ in order to find the track falling in a given area.
 .. code-block:: console
 
     $ altimetry-downloader-aviso subset SWOT_L3_LR_SSH_Unsmoothed --box -10,10,10,40 --variables ssha_unfiltered,time --cycle 1 --pass 223,225,236 -o aviso_dir --version 2.0.1
-    Local files (2) :
+    Local files (1) :
     - aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_223_20230729T035501_20230729T044628_v2.0.1.nc
-    - aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_236_20230729T150439_20230729T155517_v2.0.1.nc
 
 
+.. caution::
+
+    If no ``--start``, ``--end`` nor ``--cycle`` aren't provided in the request, the command will load all the passes that cross the specified bounding box. This can result in a large number of data being loaded.
+
+    Furthermore, the desired phase cannot be determined without a ``--start``, ``--end`` or ``--cycle`` filter, so the `Science` phase is selected by default.
+
+    Therefore, it is recommended to use the ``--start``, ``--end`` or ``--cycle`` options to limit the time range of the request, and determine the phase of the mission.
+
+.. note::
+
+    `Altimetry Search <https://github.com/CNES/altimetry-search>`_ tool is called to find the passes that cross the bounding box.
+    If passes are selected with the ``--pass`` option, it narrows the candidate passes tested against the bounding box. If a pass does not cross the bounding box, it will not be downloaded.
 
 Further Reading
 ----------------
