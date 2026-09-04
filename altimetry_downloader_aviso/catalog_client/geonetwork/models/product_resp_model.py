@@ -11,9 +11,7 @@ class GcoCharacterString(BaseModel):
     @classmethod
     def normalize_plain_string(cls, data: Any) -> Any:
         # Geonetwork sometimes returns a bare string instead of the usual
-        # {'#text': '...'} wrapper for gco:CharacterString (seen on
-        # cit:linkage/cit:description entries with @gco:nilReason set but
-        # a value present anyway).
+        # {'#text': '...'} wrapper for gco:CharacterString
         if isinstance(data, str):
             return {"#text": data}
         return data
@@ -140,9 +138,7 @@ class GmlTimePeriod(BaseModel):
     @classmethod
     def normalize_indeterminate_position(cls, data: Any) -> Any:
         # gml:endPosition can be {'@indeterminatePosition': 'now'} instead
-        # of a real date, meaning the period is still ongoing -- treat as
-        # no upper bound (consistent with MissionProperties.date_end=None
-        # elsewhere in this codebase).
+        # of a real date, meaning the period is still ongoing
         if isinstance(data, dict) and "@indeterminatePosition" in data:
             return None
         return data
