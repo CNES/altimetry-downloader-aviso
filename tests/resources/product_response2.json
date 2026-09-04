@@ -20,9 +20,7 @@
           }
         },
         "mri:credit": {
-          "gco:CharacterString": {
-            "#text": "Data provided by AVISO"
-          }
+          "gco:CharacterString": "Data provided by AVISO"
         },
         "mri:extent": {
           "gex:EX_Extent": {
@@ -55,7 +53,9 @@
                 "gex:extent": {
                   "gml:TimePeriod": {
                     "gml:beginPosition": "2023-03-29",
-                    "gml:endPosition": "2024-03-29"
+                    "gml:endPosition": {
+                      "@indeterminatePosition": "now"
+                    }
                   }
                 }
               }
@@ -97,9 +97,7 @@
                 {
                   "cit:CI_OnlineResource": {
                     "cit:description": {
-                      "gco:CharacterString": {
-                        "#text": "OTHER"
-                      }
+                      "gco:CharacterString": "OTHER"
                     },
                     "cit:linkage": {
                       "gco:CharacterString": {
