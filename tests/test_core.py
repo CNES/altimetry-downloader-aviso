@@ -42,22 +42,11 @@ def test_details():
     [
         (
             "sample_product_a",
-            {},
-            [
-                "dataset_02_02.nc",
-                "dataset_02_22.nc",
-                "dataset_03_03.nc",
-                "dataset_03_33.nc",
-            ],
-        ),
-        (
-            "sample_product_a",
             {
                 "cycle_number": 2,
             },
             ["dataset_02_02.nc", "dataset_02_22.nc"],
-        ),
-        ("sample_product_a", {"pass_number": 3}, ["dataset_03_03.nc"]),
+        )
     ],
 )
 @pytest.mark.parametrize("command", [get, subset])
@@ -78,6 +67,39 @@ def test_get_subset(tmp_path, short_name, filters, files, command, mocker):
     assert local_files == [str(tmp_path / f) for f in files]
 
 
+@pytest.mark.parametrize(
+    "short_name, filters, files",
+    [
+        (
+            "sample_product_a",
+            {},
+            [
+                "dataset_02_02.nc",
+                "dataset_02_22.nc",
+                "dataset_03_03.nc",
+                "dataset_03_33.nc",
+            ],
+        ),
+        ("sample_product_a", {"pass_number": 3}, ["dataset_03_03.nc"]),
+    ],
+)
+@pytest.mark.parametrize("command", [get, subset])
+def test_get_subset_default_phase(
+    tmp_path, short_name, filters, files, command, mocker
+):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
+        return_value="MOCK_MISSION",
+    )
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        with pytest.warns(UserWarning, match="assuming the Science phase"):
+            local_files = command(
+                product_short_name=short_name, output_dir=tmp_path, **filters
+            )
+
+    assert local_files == [str(tmp_path / f) for f in files]
+
+
 def test_subset_parameters_passed(tmp_path, mocker):
     # box alone resolves via Altimetry Search too (default mission, since
     # neither time nor cycle_number is given).
@@ -88,12 +110,14 @@ def test_subset_parameters_passed(tmp_path, mocker):
     with patch(
         "altimetry_downloader_aviso.subset.subset_one_file", return_value=True
     ) as mock:
-        subset(
-            "sample_product_a",
-            tmp_path,
-            selected_variables=["foo", "bar"],
-            box=(1, 1, 2, 2),
-        )
+
+        with pytest.warns(UserWarning, match="assuming the Science phase"):
+            subset(
+                "sample_product_a",
+                tmp_path,
+                selected_variables=["foo", "bar"],
+                box=(1, 1, 2, 2),
+            )
 
     assert mock.call_args[0][2] == (1, 1, 2, 2)
     assert mock.call_args[0][3] == ["foo", "bar"]
@@ -132,8 +156,9 @@ def test_get_subset_invalid_product(tmp_path, command):
 
 def test_subset_unsupported_product(tmp_path):
     with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
-        files = subset("sample_product_a", tmp_path)
-        assert len(files) > 0
+        with pytest.warns(UserWarning, match="assuming the Science phase"):
+            files = subset("sample_product_a", tmp_path)
+            assert len(files) > 0
 
     with pytest.raises(NotImplementedError, match="not supported"):
         subset("sample_product_b", tmp_path)
@@ -170,7 +195,6 @@ def test_get_subset_auth_error(mocker, tmp_path, command):
             },
         ),
         ("sample_product_a", {"cycle_number": 2, "pass_number": 3}),
-        ("sample_product_a", {"pass_number": 55}),
     ],
 )
 @pytest.mark.parametrize("command", [get, subset])
@@ -179,7 +203,27 @@ def test_get_subset_bad_filters(tmp_path, short_name, filters, command, mocker):
         "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
         return_value="MOCK_MISSION",
     )
+
     assert command(short_name, tmp_path, **filters) == []
+
+
+@pytest.mark.parametrize(
+    "short_name, filters",
+    [
+        ("sample_product_a", {"pass_number": 55}),
+    ],
+)
+@pytest.mark.parametrize("command", [get, subset])
+def test_get_subset_bad_filters_with_warning(
+    tmp_path, short_name, filters, command, mocker
+):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.altisearch.mission_for_cycle",
+        return_value="MOCK_MISSION",
+    )
+
+    with pytest.warns(UserWarning, match="assuming the Science phase"):
+        assert command(short_name, tmp_path, **filters) == []
 
 
 # ---------------------------------------------------------------------------
@@ -301,7 +345,7 @@ def test_resolve_cycle_pass_filters_cycle_number_spanning_missions_raises(mocker
         ac_core._resolve_cycle_pass_filters("sample_product_a", filters, box=None)
 
 
-def test_resolve_cycle_pass_filters_nothing_defaults_to_default_mission(mocker, caplog):
+def test_resolve_cycle_pass_filters_nothing_defaults_to_default_mission(mocker):
     mock_mission_for_cycle = mocker.patch(
         "altimetry_downloader_aviso.core.altisearch.mission_for_cycle"
     )
@@ -311,7 +355,7 @@ def test_resolve_cycle_pass_filters_nothing_defaults_to_default_mission(mocker, 
     )
     filters = {}
 
-    with caplog.at_level("WARNING", logger="altimetry_downloader_aviso.core"):
+    with pytest.warns(UserWarning, match="assuming the Science phase"):
         result = ac_core._resolve_cycle_pass_filters(
             "sample_product_a", filters, box=(0, 0, 10, 10)
         )
@@ -323,9 +367,6 @@ def test_resolve_cycle_pass_filters_nothing_defaults_to_default_mission(mocker, 
     )
     assert filters["pass_number"] == [12, 45]
     assert "cycle_number" not in filters
-    assert "assuming the Science phase" in caplog.text
-    assert "query-help" in caplog.text
-    assert "filter_infos" in caplog.text
 
 
 def test_resolve_cycle_pass_filters_box_narrows_pass_number(mocker):
@@ -359,12 +400,16 @@ def test_resolve_cycle_pass_filters_box_no_crossing_returns_false(mocker):
     )
     filters = {"cycle_number": 2}
 
-    assert (
-        ac_core._resolve_cycle_pass_filters(
-            "sample_product_a", filters, box=(0, 0, 10, 10)
+    with pytest.warns(
+        UserWarning,
+        match=r"No pass of mission MOCK_MISSION crosses box \(0, 0, 10, 10\)",
+    ):
+        assert (
+            ac_core._resolve_cycle_pass_filters(
+                "sample_product_a", filters, box=(0, 0, 10, 10)
+            )
+            is False
         )
-        is False
-    )
 
 
 def test_resolve_cycle_pass_filters_time_without_box_leaves_pass_number_untouched(
@@ -551,12 +596,21 @@ def test_bbox_no_intersection_returns_empty(
         return_value=[],
     )
     with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
-        local_files = command(
-            product_short_name="sample_product_a",
-            output_dir=tmp_path,
-            time=("2025-01-01", "2025-01-02"),
-            box=(0, 0, 10, 10),
-        )
+
+        with pytest.warns(
+            UserWarning,
+            match=(
+                r"No pass among \[2\] of mission MOCK_MISSION crosses box "
+                r"\(0, 0, 10, 10\)"
+            ),
+        ):
+            local_files = command(
+                product_short_name="sample_product_a",
+                output_dir=tmp_path,
+                time=("2025-01-01", "2025-01-02"),
+                pass_number=2,
+                box=(0, 0, 10, 10),
+            )
     assert local_files == []
 
 
@@ -613,11 +667,12 @@ def test_box_alone_resolves_via_default_mission(tmp_path, mocker, command):
         return_value=[22, 33],
     )
     with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
-        local_files = command(
-            product_short_name="sample_product_a",
-            output_dir=tmp_path,
-            box=(0, 0, 10, 10),
-        )
+        with pytest.warns(UserWarning, match="assuming the Science phase"):
+            local_files = command(
+                product_short_name="sample_product_a",
+                output_dir=tmp_path,
+                box=(0, 0, 10, 10),
+            )
     mock_mission_for_cycle.assert_not_called()
     mock_passes_crossing_polygon.assert_called_once_with(
         ac_core.altisearch.DEFAULT_MISSION, (0, 0, 10, 10), None

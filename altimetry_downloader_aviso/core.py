@@ -3,6 +3,7 @@ import logging
 import os
 import pathlib as pl
 import typing as tp
+import warnings
 
 import numpy as np
 import yaml
@@ -90,13 +91,14 @@ def _resolve_cycle_pass_filters(
     else:
         # No time or cycle_number: fall back to Science.
         mission = altisearch.DEFAULT_MISSION
-        logger.warning(
+        msg = (
             "No time or cycle_number given: assuming the Science phase to "
             "resolve box, which may be wrong if you're after CalVal data. "
             "For accurate results, give a cycle_number range (or time) "
             "matching the phase you want -- run 'query-help' (CLI) or call "
             "filter_infos() (Python API) for help picking one."
         )
+        warnings.warn(msg)
 
     if cycles:
         filters["cycle_number"] = sorted(cycles)
@@ -105,7 +107,10 @@ def _resolve_cycle_pass_filters(
     if box is not None:
         crossing = altisearch.passes_crossing_polygon(mission, box, passes)
         if not crossing:
-            logger.info("No pass of mission %s crosses box %s.", mission, box)
+            msg = "No pass "
+            msg += f"among {passes} " if passes else ""
+            msg += f"of mission {mission} crosses box {box}."
+            warnings.warn(msg)
             return False
         _log_altisearch("passes_crossing_polygon", mission, pass_number=crossing)
         filters["pass_number"] = crossing
@@ -225,6 +230,8 @@ def get(
         The list of local files matching the request, including both that were already
         present, and those created by the get operation.
     """
+    product = get_product_from_short_name(product_short_name)
+
     filters = dict(
         filter(
             lambda item: item[1] is not None,
@@ -235,11 +242,11 @@ def get(
         )
     )
 
-    if not _resolve_cycle_pass_filters(product_short_name, filters, box):
+    if not _resolve_cycle_pass_filters(product.short_name, filters, box):
         return []
 
     granule_paths, _, non_target_local_files = _search_granules_with_overwrite(
-        product_short_name, Protocol.HTTP, output_dir, overwrite, **filters
+        product, Protocol.HTTP, output_dir, overwrite, **filters
     )
 
     logger.debug("Downloading granules: %s...", list(granule_paths))
@@ -317,7 +324,7 @@ def subset(
     """
     # Trigger short name verification before checking if subset is enabled for the
     # dataset. This should emit a better error message for the user.
-    get_product_from_short_name(product_short_name)
+    product = get_product_from_short_name(product_short_name)
 
     logger.debug("Loading list of products supporting subsetting feature")
     with open(TDS_LAYOUT_CONFIG, encoding="utf-8") as f:
@@ -328,7 +335,7 @@ def subset(
             if product["subset"]
         ]
 
-    if product_short_name not in authorized_products:
+    if product.short_name not in authorized_products:
         msg = (
             f"Subsetting for product {product_short_name} is not supported. List of "
             f"supported products: {authorized_products}"
@@ -348,12 +355,12 @@ def subset(
         )
     )
 
-    if not _resolve_cycle_pass_filters(product_short_name, filters, box):
+    if not _resolve_cycle_pass_filters(product, filters, box):
         return []
 
     granule_paths, target_local_files, non_target_local_files = (
         _search_granules_with_overwrite(
-            product_short_name, Protocol.DAP2, output_dir, overwrite, **filters
+            product, Protocol.DAP2, output_dir, overwrite, **filters
         )
     )
 
@@ -368,13 +375,13 @@ def subset(
 
 
 def _search_granules_with_overwrite(
-    product_short_name: str,
+    product: AvisoProduct,
     protocol: Protocol,
     output_dir: str,
     overwrite: bool,
     **filters: tp.Any,
 ) -> tuple[list[str], list[str], list[str]]:
-    granule_paths = search_granules(product_short_name, protocol, **filters)
+    granule_paths = search_granules(product, protocol, **filters)
     granule_paths = granule_paths.tolist()
 
     local_files = [pl.Path(output_dir) / os.path.basename(p) for p in granule_paths]

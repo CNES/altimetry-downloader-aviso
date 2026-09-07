@@ -255,10 +255,6 @@ This command downloads Swot LR L3 Unsmoothed passes that cross the specified bou
 
     Therefore, it is recommended to use the ``--start``, ``--end`` or ``--cycle`` options to limit the time range of the request, and determine the phase of the mission.
 
-.. note::
-
-    `Altimetry Search <https://github.com/CNES/altimetry-search>`_ tool is called to find the passes that cross the bounding box.
-    If passes are selected with the ``--pass`` option, it narrows the candidate passes tested against the bounding box. If a pass does not cross the bounding box, it will not be downloaded.
 
 .. _cli_subset:
 
@@ -307,11 +303,6 @@ data in the area of interest, it will not be downloaded.
     Furthermore, the desired phase cannot be determined without a ``--start``, ``--end`` or ``--cycle`` filter, so the `Science` phase is selected by default.
 
     Therefore, it is recommended to use the ``--start``, ``--end`` or ``--cycle`` options to limit the time range of the request, and determine the phase of the mission.
-
-.. note::
-
-    `Altimetry Search <https://github.com/CNES/altimetry-search>`_ tool is called to find the passes that cross the bounding box.
-    If passes are selected with the ``--pass`` option, it narrows the candidate passes tested against the bounding box. If a pass does not cross the bounding box, it will not be downloaded.
 
 Further Reading
 ----------------
