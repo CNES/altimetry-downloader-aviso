@@ -31,6 +31,17 @@ def test_get_size_from_url_without_content_length(mocker):
     assert _get_size_from_url("https://tds.mock/a.nc") is None
 
 
+def test_get_size_from_url_invalid_content_length(mocker):
+    mock_response = mocker.Mock()
+    mock_response.headers = {"Content-Length": "not-a-number"}
+    mocker.patch(
+        "altimetry_downloader_aviso.catalog_client._granules_utils.requests.head",
+        return_value=mock_response,
+    )
+
+    assert _get_size_from_url("https://tds.mock/a.nc") is None
+
+
 def test_get_size_from_url_http_error(mocker):
     mock_response = mocker.Mock()
     mock_response.raise_for_status.side_effect = requests.HTTPError("404")
