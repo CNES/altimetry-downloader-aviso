@@ -250,10 +250,8 @@ def get(
         help="Product's version. By default, last version is selected",
     ),
     yes: bool = typer.Option(
-        False,
-        "--yes",
-        "-y",
-        help="Skip the download size confirmation prompt",
+        False, "--yes", "-y", help="Skip the download size confirmation prompt"
+    ),
     box: list = typer.Option(
         None,
         "--box",

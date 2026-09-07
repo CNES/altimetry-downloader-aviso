@@ -195,7 +195,8 @@ def confirm_download(urls: tp.Sequence[str], assume_yes: bool = False) -> bool:
 
     answer = input("Proceed with download? [y/N] ").strip().lower()
     return answer in ("y", "yes")
-  
+
+
 def _product_queryable_by_pass(product_short_name: str) -> bool:
     """Whether `time`/`box` can be resolved into `cycle_number`/`pass_number`
     via Altimetry Search for this product."""

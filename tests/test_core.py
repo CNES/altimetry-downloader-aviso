@@ -105,6 +105,7 @@ def test_get_subset_default_phase(
 
     assert local_files == [str(tmp_path / f) for f in files]
 
+
 def test_get_download_cancelled(mocker, tmp_path):
     mock_confirm = mocker.patch(
         "altimetry_downloader_aviso.core.confirm_download", return_value=False
@@ -118,6 +119,7 @@ def test_get_download_cancelled(mocker, tmp_path):
 
     assert local_files == []
     mock_confirm.assert_called_once()
+
 
 def test_subset_parameters_passed(tmp_path, mocker):
     # box alone resolves via Altimetry Search too (default mission, since
@@ -244,10 +246,12 @@ def test_get_subset_bad_filters_with_warning(
     with pytest.warns(UserWarning, match="assuming the Science phase"):
         assert command(short_name, tmp_path, **filters) == []
 
+
 # ---------------------------------------------------------------------------
 # confirm download
 # ---------------------------------------------------------------------------
-        
+
+
 def test_confirm_download_empty_urls():
     assert confirm_download([]) is True
 
@@ -286,6 +290,7 @@ def test_confirm_download_prompt_no(mocker):
     mocker.patch("builtins.input", return_value="n")
 
     assert confirm_download(["https://tds.mock/a.nc"]) is False
+
 
 # ---------------------------------------------------------------------------
 # _resolve_cycle_pass_filters
