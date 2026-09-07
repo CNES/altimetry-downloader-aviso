@@ -2,6 +2,7 @@ import logging
 from dataclasses import fields
 from pathlib import Path
 
+import numpy as np
 import typer
 from rich.console import Console
 from rich.logging import RichHandler
@@ -248,6 +249,18 @@ def get(
         "-V",
         help="Product's version. By default, last version is selected",
     ),
+    box: list = typer.Option(
+        None,
+        "--box",
+        "-b",
+        help=(
+            "Area of interest. (lon_min, lat_min, lon_max, lat_max). "
+            "Needs --start/--end."
+        ),
+        parser=lambda box_str: tuple(
+            map(lambda x: float(x.strip()), box_str.split(","))
+        ),
+    ),
     quiet: bool = typer.Option(
         False,
         "--quiet",
@@ -269,14 +282,22 @@ def get(
 
     _setup_logging(quiet=quiet, verbose=verbose)
 
+    time = None
+    if start is not None or end is not None:
+        time = (
+            np.datetime64(start) if start is not None else None,
+            np.datetime64(end) if end is not None else None,
+        )
+
     try:
         downloaded_files = ac_core.get(
             product_short_name=product,
             output_dir=output,
             cycle_number=cycle_number if cycle_number else None,
             pass_number=pass_number if pass_number else None,
-            time=(start, end),
+            time=time,
             version=version,
+            box=box,
             overwrite=overwrite,
         )
 
@@ -367,13 +388,20 @@ def subset(
 
     _setup_logging(quiet=quiet, verbose=verbose)
 
+    time = None
+    if start is not None or end is not None:
+        time = (
+            np.datetime64(start) if start is not None else None,
+            np.datetime64(end) if end is not None else None,
+        )
+
     try:
         downloaded_files = ac_core.subset(
             product_short_name=product,
             output_dir=output,
             cycle_number=cycle_number if cycle_number else None,
             pass_number=pass_number if pass_number else None,
-            time=(start, end),
+            time=time,
             version=version,
             overwrite=overwrite,
             selected_variables=selected_variables,

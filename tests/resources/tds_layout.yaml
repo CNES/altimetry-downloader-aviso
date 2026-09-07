@@ -28,6 +28,13 @@ products:
     filters:
       subset: foo
 
+  productE:
+    short_name: sample_product_e
+    data_type: TEST_TYPE
+    catalog_path: productE_path
+    subset: True
+    queryable_by_pass: False
+
 granule_discovery:
   TEST_TYPE: MyDatabase
   TEST_TYPE_2: MyDatabase2
