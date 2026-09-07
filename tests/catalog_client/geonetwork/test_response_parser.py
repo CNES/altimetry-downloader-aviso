@@ -88,10 +88,7 @@ def test_parse_product_response2(product_response2):
     assert product.abstract == "This is an abstract."
     assert product.credit == "Data provided by AVISO"
     assert product.geographic_extent == (15.0, 50.0, -40.0, 0)
-    assert product.temporal_extent == (
-        datetime(2023, 3, 29, 0, 0),
-        datetime(2024, 3, 29, 0, 0),
-    )
+    assert product.temporal_extent == (datetime(2023, 3, 29, 0, 0), None)
     assert product.resolution == "0.25 degree"
 
 

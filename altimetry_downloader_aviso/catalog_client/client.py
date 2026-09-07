@@ -72,14 +72,14 @@ def get_details(product_short_name: str) -> AvisoProduct:
 
 
 def search_granules(
-    product_short_name: str, protocol: Protocol.HTTP, **filters
+    product: AvisoProduct, protocol: Protocol.HTTP, **filters
 ) -> pda_t.Series[str]:
     """Search for granules of a product in AVISO's Thredds Data Server.
 
     Parameters
     ----------
-    product_short_name: str
-        the short name of the product
+    product: AvisoProduct
+        the product for which to search granules
     protocol
         Whether the granule URL should return the fileAccess (HTTP) or OpenDAP protocol.
     **filters
@@ -95,7 +95,6 @@ def search_granules(
     InvalidProductError
         In case the product short name doesn't correspond to any product
     """
-    product = get_product_from_short_name(product_short_name)
     return filter_granules(product, protocol, **filters)
 
 
