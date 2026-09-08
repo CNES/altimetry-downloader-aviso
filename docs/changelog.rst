@@ -1,6 +1,22 @@
 Release Notes
 =============
 
+0.6.0 (2026-09-08)
+------------------
+
+A new dependency to ``altimetry-search`` has been added to the project. This library is used
+to query the cycles of Swot mission, if a time filter is provided to the ``get`` or ``subset`` commands.
+It is also used to query the half-orbits that are crossing a given bounding box, if a box filter is provided to the ``get`` or ``subset`` commands.
+
+Added a new ``box`` filter to the ``get`` command. This new filter allows to download passes that are crossing a given bounding box.
+
+Added a total download size estimate and a confirmation prompt before
+downloading granules. The CLI (``altimetry-downloader-aviso get``) shows
+the prompt by default; use ``--yes``/``-y`` to skip it. The Python API
+(``get()``) skips the prompt by default (``assume_yes=True``) to avoid
+blocking non-interactive callers; pass ``assume_yes=False`` to enable it.
+
+
 0.5.0 (2026-07-07)
 ------------------
 
