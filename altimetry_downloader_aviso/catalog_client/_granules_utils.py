@@ -232,7 +232,8 @@ def _get_size_from_url(url: str, timeout: float = 5.0) -> tp.Optional[int]:
         content_length = resp.headers.get("Content-Length")
         return int(content_length) if content_length is not None else None
     except (requests.RequestException, ValueError) as e:
-        logger.warning("Cannot retrieve size for %s: %s", url, e)
+        msg = f"Cannot retrieve size for {url}: {str(e)}"
+        warnings.warn(msg)
         return None
 
 

@@ -1,3 +1,4 @@
+import pytest
 import requests
 
 from altimetry_downloader_aviso.catalog_client._granules_utils import (
@@ -38,8 +39,15 @@ def test_get_size_from_url_invalid_content_length(mocker):
         "altimetry_downloader_aviso.catalog_client._granules_utils.requests.head",
         return_value=mock_response,
     )
+    with pytest.warns(
+        UserWarning,
+        match=(
+            r"Cannot retrieve size for https://tds.mock/a.nc: invalid literal"
+            r" for int\(\) with base 10: 'not-a-number'"
+        ),
+    ):
 
-    assert _get_size_from_url("https://tds.mock/a.nc") is None
+        assert _get_size_from_url("https://tds.mock/a.nc") is None
 
 
 def test_get_size_from_url_http_error(mocker):
@@ -50,7 +58,11 @@ def test_get_size_from_url_http_error(mocker):
         return_value=mock_response,
     )
 
-    assert _get_size_from_url("https://tds.mock/a.nc") is None
+    with pytest.warns(
+        UserWarning,
+        match=(r"Cannot retrieve size for https://tds.mock/a.nc: 404"),
+    ):
+        assert _get_size_from_url("https://tds.mock/a.nc") is None
 
 
 def test_get_size_from_url_connection_error(mocker):
@@ -59,7 +71,11 @@ def test_get_size_from_url_connection_error(mocker):
         side_effect=requests.ConnectionError("unreachable"),
     )
 
-    assert _get_size_from_url("https://tds.mock/a.nc") is None
+    with pytest.warns(
+        UserWarning,
+        match=(r"Cannot retrieve size for https://tds.mock/a.nc: unreachable"),
+    ):
+        assert _get_size_from_url("https://tds.mock/a.nc") is None
 
 
 def test_get_size_from_url_passes_timeout(mocker):

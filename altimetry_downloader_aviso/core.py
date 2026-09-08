@@ -183,7 +183,7 @@ def confirm_download(urls: tp.Sequence[str], assume_yes: bool = False) -> bool:
 
     total, unknown = estimate_total_size(urls)
     msg = (
-        f"About to download {len(urls)} file(s),"
+        f"About to download {len(urls)} file(s), "
         f"estimated total size: {format_size(total)}"
     )
     if unknown:
@@ -218,7 +218,7 @@ def get(
     version: str | None = None,
     box: tuple[float, float, float, float] | None = None,
     overwrite: bool = False,
-    assume_yes: bool = False,
+    assume_yes: bool = True,
 ) -> list[str]:
     """Downloads a product from Aviso's Thredds Data Server.
 
@@ -246,7 +246,7 @@ def get(
     overwrite: bool
         whether to overwrite files if they already exist
     assume_yes: bool
-        whether to skip the download confirmation prompt (default: False)
+        whether to skip the download confirmation prompt (default: True)
 
     Raises
     ------
