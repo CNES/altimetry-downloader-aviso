@@ -20,7 +20,7 @@ blocking non-interactive callers; pass ``assume_yes=False`` to enable it.
 0.5.0 (2026-07-07)
 ------------------
 
-Added a new ``subset`` subcommand to subset granules over the OpenDap protocol. This
+Added a new ``subset`` subcommand to subset granules over the OpenDAP protocol. This
 new command should help reduce the bandwidth usage by selecting an area of interest and
 a set of variables to download.
 

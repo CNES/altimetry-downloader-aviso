@@ -8,6 +8,7 @@ offering these capabilities:
 
    - Metadata information: list products available and retrieve their metadata information
    - Download data: apply filters to download files in their original NetCDF format, via `AVISO's Thredds Data Server <https://tds-odatis.aviso.altimetry.fr>`_ using HTTPS connection.
+   - Subset data: apply filters to download a subset of the original NetCDF files, via `AVISO's Thredds Data Server <https://tds-odatis.aviso.altimetry.fr>`_ using OpenDAP connection.
 
 
 .. warning::
