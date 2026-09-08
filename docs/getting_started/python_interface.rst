@@ -70,13 +70,22 @@ Download a product using :func:`altimetry_downloader_aviso.get()` function.
 .. code-block:: pycon
 
     >>> local_files = get("SWOT_L3_LR_SSH_Basic", output_dir="aviso_dir", cycle_number=7, pass_number=[12, 13])
+    About to download 2 file(s),estimated total size: 7.7 MB
     >>> print(local_files)
     ['aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v3.0.nc',
      'aviso_dir/SWOT_L3_LR_SSH_Basic_007_013_20231123T202138_20231123T211304_v3.0.nc']
 
-.. caution::
+.. note::
 
-    By default, already existing files are not re-downloaded. Use ``--overwrite`` option to force re-download.
+    By default, already existing files are not re-downloaded. Use ``overwrite=True`` parameter to force re-download.
+
+
+.. note::
+
+   By default, ``get()`` prints an estimate of the total download size and
+   downloads data. Pass ``assume_yes=False`` parameter to display a confirmation
+   prompt on standard input before downloading.
+
 
 List filter values
 ~~~~~~~~~~~~~~~~~~

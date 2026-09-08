@@ -200,6 +200,7 @@ def test_get_simple_filters(mocker, tmp_path):
         time=None,
         box=None,
         overwrite=False,
+        assume_yes=False,
     )
 
 

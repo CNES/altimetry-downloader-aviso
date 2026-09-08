@@ -127,7 +127,7 @@ Download a given Aviso product using ``get`` command.
 
 .. code-block:: bash
 
-   altimetry-downloader-aviso get <product_short_name> --output <directory> [--cycle <comma separated values/ranges>>] [--pass <comma separated values/ranges>] [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--version <product version>] [--box <box>]
+   altimetry-downloader-aviso get <product_short_name> --output <directory> [--cycle <comma separated values/ranges>>] [--pass <comma separated values/ranges>] [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--version <product version>] [--box <box>] [--yes]
 
 .. _cli_help_query:
 
@@ -164,6 +164,8 @@ This command downloads Swot LR L3 Basic, cycle number 7, half-orbits 12-13, and 
 .. code-block:: console
 
     $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --cycle 7 --pass 12,13
+    About to download 2 file(s),estimated total size: 7.7 MB
+    Proceed with download? [y/N] y
     Downloaded files (2) :
     - aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v3.0.nc
     - aviso_dir/SWOT_L3_LR_SSH_Basic_007_013_20231123T202138_20231123T211304_v3.0.nc
@@ -171,6 +173,12 @@ This command downloads Swot LR L3 Basic, cycle number 7, half-orbits 12-13, and 
 .. note::
 
     You can provide multiple values/ranges for ``--cycle`` and ``--pass`` options, separated by commas (e.g., ``--cycle 5,7-9,12``).
+
+.. note::
+
+    Before downloading, the command estimates and displays the total volumetry of the
+    matching granules, then asks for confirmation. Use ``--yes``/``-y`` option to skip this confirmation.
+
 
 **Example with time filter:**
 
@@ -180,7 +188,8 @@ This command downloads Swot LR L3 Basic, in the period from 2025-01-01 to 2025-0
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --start 2025-01-01 --end 2025-01-02
+    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --start 2025-01-01 --end 2025-01-02 -y
+    About to download 29 file(s),estimated total size: 112.4 MB
     Local files (29) :
     - aviso_dir/SWOT_L3_LR_SSH_Basic_026_229_20241231T235043_20250101T004209_v3.0.nc
     - aviso_dir/SWOT_L3_LR_SSH_Basic_026_230_20250101T004210_20250101T013336_v3.0.nc
@@ -226,7 +235,8 @@ This command downloads Swot LR L3 Basic, cycle number 7, half-orbit 12, version 
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --cycle 7 --pass 12 --version 2.0.1
+    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --cycle 7 --pass 12 --version 2.0.1 -y
+    About to download 1 file(s),estimated total size: 3.4 MB
     Local files (1) :
     - aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v2.0.1.nc
 
@@ -242,7 +252,8 @@ This command downloads Swot LR L3 Unsmoothed passes that cross the specified bou
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Unsmoothed --output aviso_dir --box -10,10,10,40  --cycle 1 --pass 154,169,236,401
+    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Unsmoothed --output aviso_dir --box -10,10,10,40  --cycle 1 --pass 154,169,236,401 -y
+    About to download 2 file(s),estimated total size: 1.1 GB
     Local files (2) :
     - aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_169_20230727T053653_20230727T062820_v2.0.1.nc
     - aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_154_20230726T164516_20230726T173637_v2.0.1.nc
