@@ -88,6 +88,7 @@ def mock_get(mocker, product_response):
     mock_response.content = b"fake file contents"
     mock_response.status_code = 200
     mock_response.json.return_value = product_response
+    mock_response.iter_content = mocker.Mock(return_value=iter([mock_response.content]))
     mock_get.return_value = mock_response
     return mock_get
 
@@ -273,6 +274,9 @@ def patch_all(mocker):
 @pytest.fixture(autouse=True)
 def bypass_download_confirmation(mocker):
     mocker.patch("altimetry_downloader_aviso.core.confirm_download", return_value=True)
+    mocker.patch(
+        "altimetry_downloader_aviso.core.estimate_total_size", return_value=(0, 0)
+    )
 
 
 # PATCH TDS CATALOG CONTENT
