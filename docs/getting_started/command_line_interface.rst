@@ -127,7 +127,7 @@ Download a given Aviso product using ``get`` command.
 
 .. code-block:: bash
 
-   altimetry-downloader-aviso get <product_short_name> --output <directory> [--cycle <comma separated values/ranges>>] [--pass <comma separated values/ranges>] [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--version <product version>] [--box <box>] [--yes]
+   altimetry-downloader-aviso get <product_short_name> --output <directory> [--cycle <comma separated values/ranges>>] [--pass <comma separated values/ranges>] [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--version <product version>] [--box <box>] [--yes] [--no-progress]
 
 .. _cli_help_query:
 
@@ -179,6 +179,10 @@ This command downloads Swot LR L3 Basic, cycle number 7, half-orbits 12-13, and 
     Before downloading, the command estimates and displays the total volumetry of the
     matching granules, then asks for confirmation. Use ``--yes``/``-y`` option to skip this confirmation.
 
+.. note::
+
+    A progress bar is displayed by default while files are being downloaded.
+    Use ``--no-progress`` to disable it.
 
 **Example with time filter:**
 
