@@ -252,6 +252,11 @@ def get(
     yes: bool = typer.Option(
         False, "--yes", "-y", help="Skip the download size confirmation prompt"
     ),
+    progress: bool = typer.Option(
+        True,
+        "--progress/--no-progress",
+        help="Show a download progress bar",
+    ),
     box: list = typer.Option(
         None,
         "--box",
@@ -303,6 +308,8 @@ def get(
             box=box,
             overwrite=overwrite,
             assume_yes=yes,
+            show_progress=progress,
+            console=console,
         )
 
         console.print(f"[green]Local files ({len(downloaded_files)}) :[/]")
