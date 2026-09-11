@@ -174,7 +174,7 @@ def details(product_short_name: str) -> AvisoProduct:
     return get_details(product_short_name)
 
 
-def confirm_download(
+def _confirm_download(
     urls: tp.Sequence[str],
     total_size: int,
     unknown: int,
@@ -301,7 +301,7 @@ def get(
 
     total_size, unknown = estimate_total_size(granule_paths)
 
-    if not confirm_download(granule_paths, total_size, unknown, assume_yes, console):
+    if not _confirm_download(granule_paths, total_size, unknown, assume_yes, console):
         logger.info("Download cancelled by user.")
         return non_target_local_files
 

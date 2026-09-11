@@ -8,7 +8,7 @@ from altimetry_downloader_aviso import core as ac_core
 from altimetry_downloader_aviso.auth import AuthenticationError
 from altimetry_downloader_aviso.catalog_client.client import InvalidProductError
 from altimetry_downloader_aviso.core import (
-    confirm_download,
+    _confirm_download,
     details,
     get,
     subset,
@@ -108,7 +108,7 @@ def test_get_subset_default_phase(
 
 def test_get_download_cancelled(mocker, tmp_path):
     mock_confirm = mocker.patch(
-        "altimetry_downloader_aviso.core.confirm_download", return_value=False
+        "altimetry_downloader_aviso.core._confirm_download", return_value=False
     )
     with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
         local_files = get(
@@ -303,11 +303,11 @@ def test_get_progress_disabled_skips_confirmation_size_recompute(mocker, tmp_pat
 
 
 def test_confirm_download_empty_urls():
-    assert confirm_download([], total_size=0, unknown=0) is True
+    assert _confirm_download([], total_size=0, unknown=0) is True
 
 
 def test_confirm_download_assume_yes(capsys):
-    result = confirm_download(
+    result = _confirm_download(
         ["https://tds.mock/a.nc"], total_size=1024, unknown=0, assume_yes=True
     )
 
@@ -318,7 +318,7 @@ def test_confirm_download_assume_yes(capsys):
 def test_confirm_download_prompt_yes(mocker, capsys):
     mocker.patch("builtins.input", return_value="y")
 
-    result = confirm_download(
+    result = _confirm_download(
         ["https://tds.mock/a.nc", "https://tds.mock/b.nc"],
         total_size=2048,
         unknown=1,
@@ -334,14 +334,15 @@ def test_confirm_download_prompt_no(mocker):
     mocker.patch("builtins.input", return_value="n")
 
     assert (
-        confirm_download(["https://tds.mock/a.nc"], total_size=1024, unknown=0) is False
+        _confirm_download(["https://tds.mock/a.nc"], total_size=1024, unknown=0)
+        is False
     )
 
 
 def test_confirm_download_prints_to_given_console(mocker):
     mock_console = mocker.Mock()
 
-    result = confirm_download(
+    result = _confirm_download(
         ["https://tds.mock/a.nc"],
         total_size=1024,
         unknown=0,

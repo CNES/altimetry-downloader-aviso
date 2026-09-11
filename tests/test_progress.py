@@ -1,5 +1,6 @@
-from altimetry_downloader_aviso.progress import get_progress
 from rich.progress import Progress
+
+from altimetry_downloader_aviso.progress import get_progress
 
 
 def test_get_progress_disabled_returns_null_progress():

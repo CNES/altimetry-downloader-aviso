@@ -273,7 +273,7 @@ def patch_all(mocker):
 
 @pytest.fixture(autouse=True)
 def bypass_download_confirmation(mocker):
-    mocker.patch("altimetry_downloader_aviso.core.confirm_download", return_value=True)
+    mocker.patch("altimetry_downloader_aviso.core._confirm_download", return_value=True)
     mocker.patch(
         "altimetry_downloader_aviso.core.estimate_total_size", return_value=(0, 0)
     )
