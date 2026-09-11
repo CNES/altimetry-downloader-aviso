@@ -13,6 +13,7 @@ from altimetry_downloader_aviso.cli import (
     _setup_logging,
     app,
     comma_separated_ints,
+    console,
     logger,
 )
 
@@ -201,6 +202,8 @@ def test_get_simple_filters(mocker, tmp_path):
         box=None,
         overwrite=False,
         assume_yes=False,
+        show_progress=True,
+        console=console,
     )
 
 
@@ -311,6 +314,8 @@ def test_subset_simple_filters(mocker, tmp_path):
         box=(1, 2, 3, 4),
         time=None,
         overwrite=False,
+        show_progress=True,
+        console=console,
     )
 
 

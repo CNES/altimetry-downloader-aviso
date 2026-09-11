@@ -8,12 +8,13 @@ from altimetry_downloader_aviso import core as ac_core
 from altimetry_downloader_aviso.auth import AuthenticationError
 from altimetry_downloader_aviso.catalog_client.client import InvalidProductError
 from altimetry_downloader_aviso.core import (
-    confirm_download,
+    _confirm_download,
     details,
     get,
     subset,
     summary,
 )
+from altimetry_downloader_aviso.progress import CountProgress
 
 
 def test_summary():
@@ -108,7 +109,7 @@ def test_get_subset_default_phase(
 
 def test_get_download_cancelled(mocker, tmp_path):
     mock_confirm = mocker.patch(
-        "altimetry_downloader_aviso.core.confirm_download", return_value=False
+        "altimetry_downloader_aviso.core._confirm_download", return_value=False
     )
     with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
         local_files = get(
@@ -248,33 +249,126 @@ def test_get_subset_bad_filters_with_warning(
 
 
 # ---------------------------------------------------------------------------
+# get progress bar
+# ---------------------------------------------------------------------------
+
+
+def test_get_show_progress_false_passes_no_on_chunk(mocker, tmp_path):
+    mock_bulk_download = mocker.patch(
+        "altimetry_downloader_aviso.core.http_bulk_download", return_value=iter([])
+    )
+
+    get("sample_product_a", tmp_path, cycle_number=2, show_progress=False)
+
+    assert mock_bulk_download.call_args.kwargs["on_chunk"] is None
+
+
+def test_get_show_progress_true_advances_task(mocker, tmp_path):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.http_bulk_download", return_value=iter([])
+    )
+    mock_progress = mocker.MagicMock()
+    mock_progress.add_task.return_value = "task-id"
+    mocker.patch(
+        "altimetry_downloader_aviso.core.get_progress"
+    ).return_value.__enter__.return_value = mock_progress
+
+    get("sample_product_a", tmp_path, cycle_number=2, show_progress=True)
+
+    mock_progress.add_task.assert_called_once_with("Downloading", total=0)
+
+
+def test_get_progress_disabled_skips_confirmation_size_recompute(mocker, tmp_path):
+    mock_estimate = mocker.patch(
+        "altimetry_downloader_aviso.core.estimate_total_size",
+        return_value=(1024, 0),
+    )
+    mocker.patch(
+        "altimetry_downloader_aviso.core.http_bulk_download", return_value=iter([])
+    )
+
+    get(
+        "sample_product_a",
+        tmp_path,
+        cycle_number=2,
+        assume_yes=True,
+        show_progress=True,
+    )
+
+    mock_estimate.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# subset progress bar
+# ---------------------------------------------------------------------------
+
+
+def test_subset_show_progress_false_passes_no_on_file_done(mocker, tmp_path):
+    mock_subset_multiple = mocker.patch(
+        "altimetry_downloader_aviso.core.subset_multiple_files", return_value=[]
+    )
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        subset("sample_product_a", tmp_path, cycle_number=2, show_progress=False)
+
+    assert mock_subset_multiple.call_args.kwargs["on_file_done"] is None
+
+
+def test_subset_show_progress_true_advances_task_per_file(mocker, tmp_path):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.subset_multiple_files", return_value=[]
+    )
+    mock_progress = mocker.MagicMock()
+    mock_progress.add_task.return_value = "task-id"
+    mocker.patch(
+        "altimetry_downloader_aviso.core.get_progress"
+    ).return_value.__enter__.return_value = mock_progress
+
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        subset("sample_product_a", tmp_path, cycle_number=2, show_progress=True)
+
+    # 2 granules expected for cycle_number=2 in the mock catalog
+    mock_progress.add_task.assert_called_once_with("Subsetting", total=2)
+
+
+def test_subset_progress_uses_count_style(mocker, tmp_path):
+    mock_get_progress = mocker.patch("altimetry_downloader_aviso.core.get_progress")
+    mock_get_progress.return_value.__enter__.return_value = mocker.MagicMock()
+    mocker.patch(
+        "altimetry_downloader_aviso.core.subset_multiple_files", return_value=[]
+    )
+
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        subset("sample_product_a", tmp_path, cycle_number=2, show_progress=True)
+
+    assert isinstance(mock_get_progress.call_args.kwargs["style"], CountProgress)
+
+
+# ---------------------------------------------------------------------------
 # confirm download
 # ---------------------------------------------------------------------------
 
 
 def test_confirm_download_empty_urls():
-    assert confirm_download([]) is True
+    assert _confirm_download([], total_size=0, unknown=0) is True
 
 
-def test_confirm_download_assume_yes(mocker, capsys):
-    mocker.patch(
-        "altimetry_downloader_aviso.core.estimate_total_size",
-        return_value=(1024, 0),
+def test_confirm_download_assume_yes(capsys):
+    result = _confirm_download(
+        ["https://tds.mock/a.nc"], total_size=1024, unknown=0, assume_yes=True
     )
-    result = confirm_download(["https://tds.mock/a.nc"], assume_yes=True)
 
     assert result is True
     assert "1.0 KB" in capsys.readouterr().out
 
 
 def test_confirm_download_prompt_yes(mocker, capsys):
-    mocker.patch(
-        "altimetry_downloader_aviso.core.estimate_total_size",
-        return_value=(2048, 1),
-    )
     mocker.patch("builtins.input", return_value="y")
 
-    result = confirm_download(["https://tds.mock/a.nc", "https://tds.mock/b.nc"])
+    result = _confirm_download(
+        ["https://tds.mock/a.nc", "https://tds.mock/b.nc"],
+        total_size=2048,
+        unknown=1,
+    )
 
     out = capsys.readouterr().out
     assert result is True
@@ -283,13 +377,29 @@ def test_confirm_download_prompt_yes(mocker, capsys):
 
 
 def test_confirm_download_prompt_no(mocker):
-    mocker.patch(
-        "altimetry_downloader_aviso.core.estimate_total_size",
-        return_value=(1024, 0),
-    )
     mocker.patch("builtins.input", return_value="n")
 
-    assert confirm_download(["https://tds.mock/a.nc"]) is False
+    assert (
+        _confirm_download(["https://tds.mock/a.nc"], total_size=1024, unknown=0)
+        is False
+    )
+
+
+def test_confirm_download_prints_to_given_console(mocker):
+    mock_console = mocker.Mock()
+
+    result = _confirm_download(
+        ["https://tds.mock/a.nc"],
+        total_size=1024,
+        unknown=0,
+        assume_yes=True,
+        console=mock_console,
+    )
+
+    assert result is True
+    mock_console.print.assert_called_once()
+    assert "1 file(s)" in mock_console.print.call_args.args[0]
+    assert "1.0 KB" in mock_console.print.call_args.args[0]
 
 
 # ---------------------------------------------------------------------------

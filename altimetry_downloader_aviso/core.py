@@ -7,6 +7,7 @@ import warnings
 
 import numpy as np
 import yaml
+from rich.console import Console
 
 from . import altimetry_search_requests as altisearch
 from .auth import ensure_credentials
@@ -18,6 +19,7 @@ from .catalog_client.client import (
     search_granules,
 )
 from .catalog_client.geonetwork import AvisoCatalog, AvisoProduct
+from .progress import BytesProgress, CountProgress, get_progress
 from .subset import subset_multiple_files
 from .tds_client import TDS_HOST, TDS_LAYOUT_CONFIG, Protocol, http_bulk_download
 
@@ -172,7 +174,13 @@ def details(product_short_name: str) -> AvisoProduct:
     return get_details(product_short_name)
 
 
-def confirm_download(urls: tp.Sequence[str], assume_yes: bool = False) -> bool:
+def _confirm_download(
+    urls: tp.Sequence[str],
+    total_size: int,
+    unknown: int,
+    assume_yes: bool = False,
+    console: Console | None = None,
+) -> bool:
     """Print the estimated total volumetry and ask for user confirmation.
 
     Returns True if the download should proceed (user confirmed, or
@@ -181,14 +189,17 @@ def confirm_download(urls: tp.Sequence[str], assume_yes: bool = False) -> bool:
     if not urls:
         return True
 
-    total, unknown = estimate_total_size(urls)
     msg = (
         f"About to download {len(urls)} file(s), "
-        f"estimated total size: {format_size(total)}"
+        f"estimated total size: {format_size(total_size)}"
     )
     if unknown:
         msg += f" ({unknown} size(s) could not be determined)"
-    print(msg)
+
+    if console is not None:
+        console.print(msg)
+    else:
+        print(msg)
 
     if assume_yes:
         return True
@@ -219,6 +230,8 @@ def get(
     box: tuple[float, float, float, float] | None = None,
     overwrite: bool = False,
     assume_yes: bool = True,
+    show_progress: bool = False,
+    console: Console | None = None,
 ) -> list[str]:
     """Downloads a product from Aviso's Thredds Data Server.
 
@@ -247,6 +260,11 @@ def get(
         whether to overwrite files if they already exist
     assume_yes: bool
         whether to skip the download confirmation prompt (default: True)
+    show_progress: bool
+        whether to display a download progress bar (default: False)
+    console: Console | None
+        rich Console to render the progress bar on; if None, a new one is created
+        internally. Mainly used by the CLI to share its own Console instance.
 
     Raises
     ------
@@ -277,20 +295,32 @@ def get(
     granule_paths, _, non_target_local_files = _search_granules_with_overwrite(
         product, Protocol.HTTP, output_dir, overwrite, **filters
     )
-    if not confirm_download(granule_paths, assume_yes=assume_yes):
+
+    if console is None:
+        console = Console()
+
+    total_size, unknown = estimate_total_size(granule_paths)
+
+    if not _confirm_download(granule_paths, total_size, unknown, assume_yes, console):
         logger.info("Download cancelled by user.")
         return non_target_local_files
 
     logger.debug("Downloading granules: %s...", list(granule_paths))
 
-    return (
-        list(
-            http_bulk_download(
-                urls=granule_paths, output_dir=output_dir, overwrite=overwrite
+    with get_progress(show_progress, console, style=BytesProgress()) as progress:
+        task_id = progress.add_task("Downloading", total=total_size)
+        on_chunk = (lambda n: progress.advance(task_id, n)) if show_progress else None
+        return (
+            list(
+                http_bulk_download(
+                    urls=granule_paths,
+                    output_dir=output_dir,
+                    overwrite=overwrite,
+                    on_chunk=on_chunk,
+                )
             )
+            + non_target_local_files
         )
-        + non_target_local_files
-    )
 
 
 @authenticate
@@ -304,6 +334,8 @@ def subset(
     box: tuple[float, float, float, float] | None = None,
     selected_variables: list[str] | None = None,
     overwrite: bool = False,
+    show_progress: bool = False,
+    console: Console | None = None,
 ) -> list[str]:
     """Subset a product from Aviso's Thredds Data Server.
 
@@ -330,8 +362,13 @@ def subset(
         (otherwise every pass of the mission is tested).
     selected_variables
         List of variables to select.
-    overwrite: bool
+    overwrite
         whether to overwrite files if they already exist
+    show_progress
+        whether to display a per-file subsetting progress bar (default: False)
+    console
+        rich Console to render the progress bar on; if None, a new one is
+        created internally. Mainly used by the CLI to share its own Console.
 
     Raises
     ------
@@ -398,12 +435,19 @@ def subset(
 
     logger.info("Subsetting %d file(s)...", len(granule_paths))
 
-    return (
-        subset_multiple_files(
-            granule_paths, target_local_files, box, selected_variables
+    with get_progress(show_progress, console, style=CountProgress()) as progress:
+        task_id = progress.add_task("Subsetting", total=len(granule_paths))
+        on_file_done = (lambda: progress.advance(task_id, 1)) if show_progress else None
+        return (
+            subset_multiple_files(
+                granule_paths,
+                target_local_files,
+                box,
+                selected_variables,
+                on_file_done=on_file_done,
+            )
+            + non_target_local_files
         )
-        + non_target_local_files
-    )
 
 
 def _search_granules_with_overwrite(

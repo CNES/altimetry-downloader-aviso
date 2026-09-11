@@ -1,6 +1,25 @@
 Release Notes
 =============
 
+0.7.0 (2026-09-11)
+------------------
+
+Added
+~~~~~
+
+Added an optional download progress bar for the ``get`` command and function,
+showing bytes transferred and speed as files are downloaded. The CLI shows
+the progress bar by default; use ``--no-progress`` to disable it. The Python
+API (``get()``) hides it by default; pass ``show_progress=True`` to enable it.
+
+Changed
+~~~~~~~
+
+File-level "downloaded" log messages are now emitted at ``DEBUG`` level
+instead of ``INFO`` when the progress bar is active, to avoid interleaving
+with its display.
+
+
 0.6.0 (2026-09-08)
 ------------------
 
