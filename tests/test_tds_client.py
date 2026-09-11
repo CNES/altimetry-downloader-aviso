@@ -242,6 +242,24 @@ def test_http_single_download_skips_keep_alive_chunks(mocker, tmp_path):
         assert f.read() == b"datamore"
 
 
+def test_http_single_download_skips_existing_file(mocker, tmp_path):
+    url = "https://example.com/file.txt"
+    local_filepath = tmp_path / "file.txt"
+    local_filepath.write_bytes(b"already there")
+
+    mock_get = mocker.patch("requests.get")
+    mocker.patch(
+        "altimetry_downloader_aviso.auth.ensure_credentials",
+        return_value=("user", "pass"),
+    )
+
+    result_path = http_single_download(url, tmp_path, overwrite=False)
+
+    assert result_path == str(local_filepath)
+    assert local_filepath.read_bytes() == b"already there"
+    mock_get.assert_not_called()
+
+
 def test_http_bulk_download_propagates_on_chunk(mocker):
     mock_retry = mocker.patch(
         "altimetry_downloader_aviso.tds_client.http_single_download_with_retries"

@@ -338,6 +338,23 @@ def test_confirm_download_prompt_no(mocker):
     )
 
 
+def test_confirm_download_prints_to_given_console(mocker):
+    mock_console = mocker.Mock()
+
+    result = confirm_download(
+        ["https://tds.mock/a.nc"],
+        total_size=1024,
+        unknown=0,
+        assume_yes=True,
+        console=mock_console,
+    )
+
+    assert result is True
+    mock_console.print.assert_called_once()
+    assert "1 file(s)" in mock_console.print.call_args.args[0]
+    assert "1.0 KB" in mock_console.print.call_args.args[0]
+
+
 # ---------------------------------------------------------------------------
 # _resolve_cycle_pass_filters
 # ---------------------------------------------------------------------------
