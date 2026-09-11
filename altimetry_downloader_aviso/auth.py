@@ -38,6 +38,25 @@ def ensure_credentials(host: str):
     and ~/.netrc will not be used. Instead, the ~/.altimetry/.netrc and
     ~/.altimetry/.ncrc will be used.
 
+    Warning
+    -------
+    ``altimetry_downloader_aviso`` sets ``NCRCENV_RC`` as early as possible (at package
+    import time) to configure netCDF4-c correctly, since that variable only takes
+    effect if set before netCDF4 is first imported. This only works if
+    ``altimetry_downloader_aviso`` itself is imported **before** ``netCDF4``,
+    ``xarray``, or ``pyinterp`` anywhere in your code. Importing one of those
+    beforehand will prevent authentication from being correctly configured for
+    netCDF4-c, and a ``UserWarning`` will be raised to signal it::
+
+        # Wrong: netCDF4 loaded first, NCRCENV_RC set too late to have any effect
+        import netCDF4
+        import altimetry_downloader_aviso
+
+        # Correct
+        import altimetry_downloader_aviso
+        import netCDF4
+
+
     Parameters
     ----------
     host: str
