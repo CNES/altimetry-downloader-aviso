@@ -1,7 +1,34 @@
+# progress.py
 from contextlib import contextmanager
 
 from rich.console import Console
-from rich.progress import BarColumn, DownloadColumn, Progress, TransferSpeedColumn
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    MofNCompleteColumn,
+    Progress,
+    ProgressColumn,
+    TransferSpeedColumn,
+)
+
+
+class ProgressStyle:
+    """Base class defining which extra rich columns to display, on top of the
+    description and the bar (common to every style)."""
+
+    columns: tuple[ProgressColumn, ...] = ()
+
+
+class BytesProgress(ProgressStyle):
+    """Byte-transfer progress: amount downloaded and transfer speed."""
+
+    columns = (DownloadColumn(), TransferSpeedColumn())
+
+
+class CountProgress(ProgressStyle):
+    """File-count progress: "completed/total" files."""
+
+    columns = (MofNCompleteColumn(),)
 
 
 class _NullProgress:
@@ -18,15 +45,28 @@ class _NullProgress:
 
 
 @contextmanager
-def get_progress(enabled: bool, console: Console | None = None):
+def get_progress(
+    enabled: bool,
+    console: Console | None = None,
+    style: ProgressStyle | None = None,
+):
+    """Context manager yielding a rich Progress (or a no-op stand-in).
+
+    style: ProgressStyle | None
+        determines the extra columns shown (see BytesProgress, CountProgress).
+        Defaults to BytesProgress if not given.
+    """
     if not enabled:
         yield _NullProgress()
         return
+
+    style = style or BytesProgress()
+
     with Progress(
         "[progress.description]{task.description}",
         BarColumn(),
-        DownloadColumn(binary_units=True),
-        TransferSpeedColumn(),
+        *style.columns,
+        # share the Console so other rich output doesn't clash with the Live redraw
         console=console,
     ) as progress:
         yield progress

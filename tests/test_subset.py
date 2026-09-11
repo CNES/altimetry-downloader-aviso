@@ -185,3 +185,54 @@ def test_subset_multiple_files():
         )
 
     assert downloaded == ["c.nc"]
+
+
+def test_subset_multiple_files_calls_on_file_done_per_granule(mocker, tmp_path):
+    mocker.patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True)
+    on_file_done = mocker.Mock()
+
+    subset_multiple_files(
+        dap2_urls=["https://tds.mock/a.nc", "https://tds.mock/b.nc"],
+        output_files=[str(tmp_path / "a.nc"), str(tmp_path / "b.nc")],
+        on_file_done=on_file_done,
+    )
+
+    assert on_file_done.call_count == 2
+
+
+def test_subset_multiple_files_calls_on_file_done_even_on_failure(mocker, tmp_path):
+    """on_file_done must fire once per granule regardless of outcome, otherwise
+    the progress bar total never reaches completion when some granules fail."""
+    mocker.patch(
+        "altimetry_downloader_aviso.subset.subset_one_file",
+        side_effect=RuntimeError("boom"),
+    )
+    on_file_done = mocker.Mock()
+
+    with pytest.warns(UserWarning, match="Subsetting .* failed"):
+        subset_multiple_files(
+            dap2_urls=["https://tds.mock/a.nc"],
+            output_files=[str(tmp_path / "a.nc")],
+            retries=1,
+            on_file_done=on_file_done,
+        )
+
+    on_file_done.assert_called_once()
+
+
+def test_subset_multiple_files_calls_on_file_done_when_no_data_in_box(mocker, tmp_path):
+    """A granule with no data in the requested box (has_data=False) is a normal
+    outcome, not a failure -- on_file_done must still fire."""
+    mocker.patch(
+        "altimetry_downloader_aviso.subset.subset_one_file", return_value=False
+    )
+    on_file_done = mocker.Mock()
+
+    downloaded = subset_multiple_files(
+        dap2_urls=["https://tds.mock/a.nc"],
+        output_files=[str(tmp_path / "a.nc")],
+        on_file_done=on_file_done,
+    )
+
+    assert downloaded == []
+    on_file_done.assert_called_once()

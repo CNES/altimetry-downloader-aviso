@@ -249,14 +249,6 @@ def get(
         "-V",
         help="Product's version. By default, last version is selected",
     ),
-    yes: bool = typer.Option(
-        False, "--yes", "-y", help="Skip the download size confirmation prompt"
-    ),
-    progress: bool = typer.Option(
-        True,
-        "--progress/--no-progress",
-        help="Show a download progress bar",
-    ),
     box: list = typer.Option(
         None,
         "--box",
@@ -268,6 +260,14 @@ def get(
         parser=lambda box_str: tuple(
             map(lambda x: float(x.strip()), box_str.split(","))
         ),
+    ),
+    yes: bool = typer.Option(
+        False, "--yes", "-y", help="Skip the download size confirmation prompt"
+    ),
+    progress: bool = typer.Option(
+        True,
+        "--progress/--no-progress",
+        help="Show a download progress bar",
     ),
     quiet: bool = typer.Option(
         False,
@@ -373,6 +373,11 @@ def subset(
         help="Variables to download.",
         parser=lambda variables: [v.strip() for v in variables.split(",")],
     ),
+    progress: bool = typer.Option(
+        True,
+        "--progress/--no-progress",
+        help="Show a download progress bar",
+    ),
     quiet: bool = typer.Option(
         False,
         "--quiet",
@@ -417,6 +422,8 @@ def subset(
             overwrite=overwrite,
             selected_variables=selected_variables,
             box=box,
+            show_progress=progress,
+            console=console,
         )
 
         console.print(f"[green]Local files ({len(downloaded_files)}) :[/]")

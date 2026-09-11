@@ -25,6 +25,7 @@ half orbit" to setup an efficient algorithm for geographical selection
 import logging
 import time
 import warnings
+from typing import Callable
 
 import numpy as np
 import xarray as xr
@@ -39,6 +40,7 @@ def subset_multiple_files(
     selected_variables: list[str] | None = None,
     retries: int = 3,
     backoff: float = 1.0,
+    on_file_done: Callable[[], None] | None = None,
 ) -> list[str]:
     """Subset multiple files via the open dap protocol.
 
@@ -64,6 +66,10 @@ def subset_multiple_files(
         number of retries
     backoff
         waiting time between two tries. Increases exponentially.
+    on_file_done
+        optional callback invoked once per granule, after all retry attempts
+        (whether the granule was subsetted successfully, had no data in the
+        box, or ultimately failed). Used to report per-file progress.
 
     Warns
     -----
@@ -98,6 +104,9 @@ def subset_multiple_files(
         if all_attempts_failed:
             msg = f"Subsetting {dap2_url} failed."
             warnings.warn(msg)
+
+        if on_file_done is not None:
+            on_file_done()
 
     return downloaded
 

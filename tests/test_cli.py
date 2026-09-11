@@ -314,6 +314,8 @@ def test_subset_simple_filters(mocker, tmp_path):
         box=(1, 2, 3, 4),
         time=None,
         overwrite=False,
+        show_progress=True,
+        console=console,
     )
 
 

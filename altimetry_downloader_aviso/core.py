@@ -19,7 +19,7 @@ from .catalog_client.client import (
     search_granules,
 )
 from .catalog_client.geonetwork import AvisoCatalog, AvisoProduct
-from .progress import get_progress
+from .progress import BytesProgress, CountProgress, get_progress
 from .subset import subset_multiple_files
 from .tds_client import TDS_HOST, TDS_LAYOUT_CONFIG, Protocol, http_bulk_download
 
@@ -307,7 +307,7 @@ def get(
 
     logger.debug("Downloading granules: %s...", list(granule_paths))
 
-    with get_progress(show_progress, console) as progress:
+    with get_progress(show_progress, console, style=BytesProgress()) as progress:
         task_id = progress.add_task("Downloading", total=total_size)
         on_chunk = (lambda n: progress.advance(task_id, n)) if show_progress else None
         return (
@@ -334,6 +334,8 @@ def subset(
     box: tuple[float, float, float, float] | None = None,
     selected_variables: list[str] | None = None,
     overwrite: bool = False,
+    show_progress: bool = False,
+    console: Console | None = None,
 ) -> list[str]:
     """Subset a product from Aviso's Thredds Data Server.
 
@@ -360,8 +362,13 @@ def subset(
         (otherwise every pass of the mission is tested).
     selected_variables
         List of variables to select.
-    overwrite: bool
+    overwrite
         whether to overwrite files if they already exist
+    show_progress
+        whether to display a per-file subsetting progress bar (default: False)
+    console
+        rich Console to render the progress bar on; if None, a new one is
+        created internally. Mainly used by the CLI to share its own Console.
 
     Raises
     ------
@@ -428,12 +435,19 @@ def subset(
 
     logger.info("Subsetting %d file(s)...", len(granule_paths))
 
-    return (
-        subset_multiple_files(
-            granule_paths, target_local_files, box, selected_variables
+    with get_progress(show_progress, console, style=CountProgress()) as progress:
+        task_id = progress.add_task("Subsetting", total=len(granule_paths))
+        on_file_done = (lambda: progress.advance(task_id, 1)) if show_progress else None
+        return (
+            subset_multiple_files(
+                granule_paths,
+                target_local_files,
+                box,
+                selected_variables,
+                on_file_done=on_file_done,
+            )
+            + non_target_local_files
         )
-        + non_target_local_files
-    )
 
 
 def _search_granules_with_overwrite(

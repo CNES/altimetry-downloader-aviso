@@ -14,6 +14,7 @@ from altimetry_downloader_aviso.core import (
     subset,
     summary,
 )
+from altimetry_downloader_aviso.progress import CountProgress
 
 
 def test_summary():
@@ -248,7 +249,7 @@ def test_get_subset_bad_filters_with_warning(
 
 
 # ---------------------------------------------------------------------------
-# progress bar
+# get progress bar
 # ---------------------------------------------------------------------------
 
 
@@ -295,6 +296,51 @@ def test_get_progress_disabled_skips_confirmation_size_recompute(mocker, tmp_pat
     )
 
     mock_estimate.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# subset progress bar
+# ---------------------------------------------------------------------------
+
+
+def test_subset_show_progress_false_passes_no_on_file_done(mocker, tmp_path):
+    mock_subset_multiple = mocker.patch(
+        "altimetry_downloader_aviso.core.subset_multiple_files", return_value=[]
+    )
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        subset("sample_product_a", tmp_path, cycle_number=2, show_progress=False)
+
+    assert mock_subset_multiple.call_args.kwargs["on_file_done"] is None
+
+
+def test_subset_show_progress_true_advances_task_per_file(mocker, tmp_path):
+    mocker.patch(
+        "altimetry_downloader_aviso.core.subset_multiple_files", return_value=[]
+    )
+    mock_progress = mocker.MagicMock()
+    mock_progress.add_task.return_value = "task-id"
+    mocker.patch(
+        "altimetry_downloader_aviso.core.get_progress"
+    ).return_value.__enter__.return_value = mock_progress
+
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        subset("sample_product_a", tmp_path, cycle_number=2, show_progress=True)
+
+    # 2 granules expected for cycle_number=2 in the mock catalog
+    mock_progress.add_task.assert_called_once_with("Subsetting", total=2)
+
+
+def test_subset_progress_uses_count_style(mocker, tmp_path):
+    mock_get_progress = mocker.patch("altimetry_downloader_aviso.core.get_progress")
+    mock_get_progress.return_value.__enter__.return_value = mocker.MagicMock()
+    mocker.patch(
+        "altimetry_downloader_aviso.core.subset_multiple_files", return_value=[]
+    )
+
+    with patch("altimetry_downloader_aviso.subset.subset_one_file", return_value=True):
+        subset("sample_product_a", tmp_path, cycle_number=2, show_progress=True)
+
+    assert isinstance(mock_get_progress.call_args.kwargs["style"], CountProgress)
 
 
 # ---------------------------------------------------------------------------
