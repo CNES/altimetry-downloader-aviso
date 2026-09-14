@@ -14,6 +14,14 @@ This module handles authentication through two files:
 Both files are located in ``~/.altimetry`` to isolate the downloader from already
 existing user configurations.
 
+.. important::
+
+    Import ``altimetry_downloader_aviso`` before ``netCDF4``, ``xarray``, or
+    ``pyinterp`` in your script or notebook. netCDF4-c reads its
+    authentication configuration only once, at import time -- importing one
+    of these libraries first prevents ``altimetry_downloader_aviso`` from
+    configuring it correctly, and a warning will be raised.
+
 Overview
 --------
 
