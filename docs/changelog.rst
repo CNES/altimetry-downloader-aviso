@@ -1,13 +1,13 @@
 Release Notes
 =============
 
-0.7.0 (2026-09-11)
+0.7.0 (2026-09-15)
 ------------------
 
 Added
 ~~~~~
 
-Added an optional download progress bar for the ``get`` command and function,
+Added an optional download progress bar for the ``get`` and ``subset`` commands and functions,
 showing bytes transferred and speed as files are downloaded. The CLI shows
 the progress bar by default; use ``--no-progress`` to disable it. The Python
 API (``get()``) hides it by default; pass ``show_progress=True`` to enable it.
