@@ -19,6 +19,15 @@ File-level "downloaded" log messages are now emitted at ``DEBUG`` level
 instead of ``INFO`` when the progress bar is active, to avoid interleaving
 with its display.
 
+Fixed
+~~~~~
+
+Fixed an issue where netCDF4-c authentication could silently fail to be
+configured if another library (e.g. ``xarray``, ``pyinterp``) imported
+``netCDF4`` before any download was attempted. Import
+``altimetry_downloader_aviso`` before ``netCDF4``-related libraries to
+avoid this; a warning is raised otherwise.
+
 
 0.6.0 (2026-09-08)
 ------------------
