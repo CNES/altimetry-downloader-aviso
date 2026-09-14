@@ -1,3 +1,9 @@
+# This import should be done before any other import
+# that could transitively load netCDF4, to avoid
+# warning about netCDF4 being already loaded and the
+# authentication configuration not being applied.
+import altimetry_downloader_aviso.auth  # isort: skip
+
 import datetime as dt
 import json
 import re
@@ -18,7 +24,6 @@ from fcollections.core import (
 from fcollections.time import Period
 from requests.exceptions import ProxyError
 
-import altimetry_downloader_aviso.auth
 from altimetry_downloader_aviso.catalog_client._granules_utils import RemoteDirNode
 from altimetry_downloader_aviso.catalog_client.granule_discoverer import Protocol
 
