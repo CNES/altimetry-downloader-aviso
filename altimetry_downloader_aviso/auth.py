@@ -74,6 +74,11 @@ def ensure_credentials(host: str):
         _prompt_and_save_credentials(host)
 
 
+def _ncrc_env_value() -> str:
+    """Compute the NCRCENV_RC value pointing to our isolated .ncrc file."""
+    return NCRC_PATH.as_posix()
+
+
 def _setup_auth_env():
     """Setup environment variables needed by netCDF4-c and requests for
     authentication.
@@ -97,7 +102,7 @@ def _setup_auth_env():
         # its env var dynamically
         if name.startswith("netCDF") and (
             "NCRCENV_RC" not in os.environ
-            or os.environ["NCRCENV_RC"] != NCRC_PATH.as_posix()
+            or os.environ["NCRCENV_RC"] != _ncrc_env_value()
         ):
             msg = (
                 "netCDF4 is already loaded. Authentication configuration may not be "
@@ -105,7 +110,7 @@ def _setup_auth_env():
             )
             warnings.warn(msg)
 
-    os.environ["NCRCENV_RC"] = NCRC_PATH.as_posix()
+    os.environ["NCRCENV_RC"] = _ncrc_env_value()
     os.environ["NETRC"] = NETRC_PATH.as_posix()
 
 
