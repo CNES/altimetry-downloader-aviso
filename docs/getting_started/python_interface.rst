@@ -86,6 +86,13 @@ Download a product using :func:`altimetry_downloader_aviso.get()` function.
    downloads data. Pass ``assume_yes=False`` parameter to display a confirmation
    prompt on standard input before downloading.
 
+.. note::
+
+   By default, ``get()`` does not display a progress bar (``show_progress=False``),
+   to avoid unwanted output in scripts and automated pipelines. Pass
+   ``show_progress=True`` to display one — useful for interactive use in a
+   notebook or a terminal session.
+
 
 List filter values
 ~~~~~~~~~~~~~~~~~~
