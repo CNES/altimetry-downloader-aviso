@@ -6,7 +6,7 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum, auto
 from pathlib import Path
-from typing import Generator, Iterable
+from typing import Callable, Generator, Iterable
 
 import requests
 
@@ -40,6 +40,8 @@ def http_single_download(
     url: str,
     output_dir: str | pl.Path,
     overwrite: bool = False,
+    chunk_size: int = 1024 * 1024,  # 1 MiB
+    on_chunk: Callable[[int], None] | None = None,
 ) -> str:
     """Download a granule from AVISO's Thredds Data Server using HTTPS
     protocol.
@@ -52,6 +54,11 @@ def http_single_download(
         existing directory to store the downloaded file
     overwrite: bool
         whether to overwrite the file if it already exists
+    chunk_size: int
+        size in bytes of each streamed chunk
+    on_chunk: Callable[[int], None] | None
+        optional callback invoked with the number of bytes written after each chunk
+        (used to report download progress)
 
     Returns
     -------
@@ -70,13 +77,23 @@ def http_single_download(
     # requests will authenticate using the netrc file defined in the NETRC environment
     # variable
     logger.debug("NETRC environment variable: %s", os.environ["NETRC"])
-    response = requests.get(url)
+    response = requests.get(url, stream=True)
     response.raise_for_status()
 
     with open(local_filepath, "wb") as f:
-        f.write(response.content)
+        for chunk in response.iter_content(chunk_size=chunk_size):
+            if not chunk:  # filter out keep-alive chunks
+                continue
+            f.write(chunk)
+            if on_chunk is not None:
+                on_chunk(len(chunk))
 
-    logger.info("File %s downloaded.", local_filepath)
+    if on_chunk is not None:
+        # progress bar already reports completion;
+        # avoid interleaving with the Live display
+        logger.debug("File %s downloaded.", local_filepath)
+    else:
+        logger.info("File %s downloaded.", local_filepath)
 
     return str(local_filepath)
 
@@ -87,6 +104,8 @@ def http_single_download_with_retries(
     retries: int = 3,
     backoff: float = 1.0,
     overwrite: bool = False,
+    chunk_size: int = 1024 * 1024,
+    on_chunk: Callable[[int], None] | None = None,
 ) -> str:
     """Download a granule from AVISO's Thredds Data Server using HTTPS
     protocol. Retries if the download fails.
@@ -103,6 +122,11 @@ def http_single_download_with_retries(
         waiting time between two tries. Increases exponentially
     overwrite: bool
         whether to overwrite the file if it already exists
+    chunk_size: int
+        size in bytes of each streamed chunk
+    on_chunk: Callable[[int], None] | None
+        optional callback invoked with the number of bytes written after each chunk
+        (used to report download progress)
 
     Returns
     -------
@@ -117,7 +141,9 @@ def http_single_download_with_retries(
 
     for attempt in range(1, retries + 1):
         try:
-            return http_single_download(url, output_dir, overwrite)
+            return http_single_download(
+                url, output_dir, overwrite, chunk_size, on_chunk
+            )
 
         except requests.RequestException as e:
             logger.debug("Attempt %d failed for %s: %s", attempt, url, e)
@@ -135,10 +161,12 @@ def _download_one(
     retries: int = 3,
     backoff: float = 1.0,
     overwrite: bool = False,
+    chunk_size: int = 1024 * 1024,
+    on_chunk: Callable[[int], None] | None = None,
 ):
     try:
         return http_single_download_with_retries(
-            url, output_dir, retries, backoff, overwrite
+            url, output_dir, retries, backoff, overwrite, chunk_size, on_chunk
         )
     except requests.RequestException as e:
         msg = f"Failed to download {url}. An error happened: {e}"
@@ -152,6 +180,8 @@ def http_bulk_download(
     retries: int = 3,
     backoff: float = 1.0,
     overwrite: bool = False,
+    chunk_size: int = 1024 * 1024,
+    on_chunk: Callable[[int], None] | None = None,
 ) -> Generator[str, None, None]:
     """Loop on a list of urls to download each granule from AVISO's Thredds
     Data Server using HTTPS protocol. Each download as retries if it fails.
@@ -168,6 +198,11 @@ def http_bulk_download(
         waiting time between two tries. Increases exponentially
     overwrite: bool
         whether to overwrite the file if it already exists
+    chunk_size: int
+        size in bytes of each streamed chunk
+    on_chunk: Callable[[int], None] | None
+        optional callback invoked with the number of bytes written after each chunk
+        (used to report download progress)
 
     Returns
     -------
@@ -177,7 +212,9 @@ def http_bulk_download(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for url in urls:
-        file = _download_one(url, output_dir, retries, backoff, overwrite)
+        file = _download_one(
+            url, output_dir, retries, backoff, overwrite, chunk_size, on_chunk
+        )
         if file:
             yield file
 
@@ -189,6 +226,8 @@ def http_bulk_download_parallel(
     backoff: float = 1.0,
     max_workers: int = 4,
     overwrite: bool = False,
+    chunk_size: int = 1024 * 1024,
+    on_chunk: Callable[[int], None] | None = None,
 ) -> Generator[str, None, None]:
     """Parallel download of granules from AVISO's Thredds Data Server using
     HTTPS protocol.
@@ -207,6 +246,11 @@ def http_bulk_download_parallel(
         Maximum number of workers
     overwrite: bool
         whether to overwrite the file if it already exists
+    chunk_size: int
+        size in bytes of each streamed chunk
+    on_chunk: Callable[[int], None] | None
+        optional callback invoked with the number of bytes written after each chunk
+        (used to report download progress)
 
     Returns
     -------
@@ -221,6 +265,8 @@ def http_bulk_download_parallel(
                 retries,
                 backoff,
                 overwrite,
+                chunk_size,
+                on_chunk,
             ): url
             for url in urls
         }

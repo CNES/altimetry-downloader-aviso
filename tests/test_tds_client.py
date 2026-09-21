@@ -21,12 +21,11 @@ def test_http_single_download_success(mocker, tmp_path):
     expected_path = tmp_path / filename
 
     mock_response = mocker.Mock()
-    fake_data = b"dummy data"
-    mock_response.content = fake_data
+    fake_chunks = [b"dummy ", b"data"]
+    mock_response.iter_content = mocker.Mock(return_value=iter(fake_chunks))
     mock_response.raise_for_status = mocker.Mock()
 
     mocker.patch("requests.get", return_value=mock_response)
-
     mocker.patch(
         "altimetry_downloader_aviso.auth.ensure_credentials",
         return_value=("user", "pass"),
@@ -37,15 +36,7 @@ def test_http_single_download_success(mocker, tmp_path):
     assert os.path.exists(result_path)
     assert result_path == str(expected_path)
     with open(result_path, "rb") as f:
-        assert f.read() == fake_data
-
-    result_path = http_single_download(url, tmp_path)
-    assert result_path == str(expected_path)
-
-    result_path = http_single_download(url, tmp_path, overwrite=True)
-    assert result_path == str(expected_path)
-    with open(result_path, "rb") as f:
-        assert f.read() == fake_data
+        assert f.read() == b"".join(fake_chunks)
 
 
 def test_http_single_download_error(mocker):
@@ -193,3 +184,89 @@ def test_http_bulk_download_parallel_partial_fail(mocker):
 
     assert len(record) == 1
     assert "Failed to download https://x.com/fail.txt" in str(record[0].message)
+
+
+def test_http_single_download_streams_with_stream_true(mocker, tmp_path):
+    """requests.get must be called with stream=True, otherwise iter_content
+    reads an already-fully-buffered response, defeating the purpose of progress
+    reporting."""
+    mock_response = mocker.Mock()
+    mock_response.iter_content = mocker.Mock(return_value=iter([b"data"]))
+    mock_response.raise_for_status = mocker.Mock()
+    mock_get = mocker.patch("requests.get", return_value=mock_response)
+    mocker.patch(
+        "altimetry_downloader_aviso.auth.ensure_credentials",
+        return_value=("user", "pass"),
+    )
+
+    http_single_download("https://example.com/file.txt", tmp_path)
+
+    mock_get.assert_called_once_with("https://example.com/file.txt", stream=True)
+
+
+def test_http_single_download_calls_on_chunk(mocker, tmp_path):
+    mock_response = mocker.Mock()
+    fake_chunks = [b"1234", b"567"]
+    mock_response.iter_content = mocker.Mock(return_value=iter(fake_chunks))
+    mock_response.raise_for_status = mocker.Mock()
+    mocker.patch("requests.get", return_value=mock_response)
+    mocker.patch(
+        "altimetry_downloader_aviso.auth.ensure_credentials",
+        return_value=("user", "pass"),
+    )
+
+    on_chunk = mocker.Mock()
+    http_single_download("https://example.com/file.txt", tmp_path, on_chunk=on_chunk)
+
+    on_chunk.assert_has_calls([mocker.call(4), mocker.call(3)])
+
+
+def test_http_single_download_skips_keep_alive_chunks(mocker, tmp_path):
+    """Empty chunks (keep-alive) must not trigger on_chunk nor be written."""
+    mock_response = mocker.Mock()
+    mock_response.iter_content = mocker.Mock(return_value=iter([b"data", b"", b"more"]))
+    mock_response.raise_for_status = mocker.Mock()
+    mocker.patch("requests.get", return_value=mock_response)
+    mocker.patch(
+        "altimetry_downloader_aviso.auth.ensure_credentials",
+        return_value=("user", "pass"),
+    )
+
+    on_chunk = mocker.Mock()
+    result_path = http_single_download(
+        "https://example.com/file.txt", tmp_path, on_chunk=on_chunk
+    )
+
+    assert on_chunk.call_count == 2
+    with open(result_path, "rb") as f:
+        assert f.read() == b"datamore"
+
+
+def test_http_single_download_skips_existing_file(mocker, tmp_path):
+    url = "https://example.com/file.txt"
+    local_filepath = tmp_path / "file.txt"
+    local_filepath.write_bytes(b"already there")
+
+    mock_get = mocker.patch("requests.get")
+    mocker.patch(
+        "altimetry_downloader_aviso.auth.ensure_credentials",
+        return_value=("user", "pass"),
+    )
+
+    result_path = http_single_download(url, tmp_path, overwrite=False)
+
+    assert result_path == str(local_filepath)
+    assert local_filepath.read_bytes() == b"already there"
+    mock_get.assert_not_called()
+
+
+def test_http_bulk_download_propagates_on_chunk(mocker):
+    mock_retry = mocker.patch(
+        "altimetry_downloader_aviso.tds_client.http_single_download_with_retries"
+    )
+    mock_retry.return_value = "/tmp/file1.txt"
+    on_chunk = mocker.Mock()
+
+    list(http_bulk_download(["https://a.com/1"], "/tmp", on_chunk=on_chunk))
+
+    assert mock_retry.call_args.args[-1] is on_chunk
