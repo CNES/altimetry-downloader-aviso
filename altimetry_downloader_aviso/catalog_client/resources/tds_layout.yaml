@@ -4,7 +4,7 @@ products:
     short_name: SWOT_L3_LR_SSH_Basic
     data_type: SWOT_L3_LR_SSH
     catalog_path: dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/
-    subset: True
+    subset: False
     queryable_by_pass: True
     filters:
       version: '3.0'
@@ -14,7 +14,7 @@ products:
     short_name: SWOT_L3_LR_SSH_Expert
     data_type: SWOT_L3_LR_SSH
     catalog_path: dataset-l3-swot-karin-nadir-validated/l3_lr_ssh/
-    subset: True
+    subset: False
     queryable_by_pass: True
     filters:
       version: '3.0'
