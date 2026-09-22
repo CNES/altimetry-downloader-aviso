@@ -310,17 +310,22 @@ def get(
     with get_progress(show_progress, console, style=BytesProgress()) as progress:
         task_id = progress.add_task("Downloading", total=total_size)
         on_chunk = (lambda n: progress.advance(task_id, n)) if show_progress else None
-        return (
-            list(
-                http_bulk_download(
-                    urls=granule_paths,
-                    output_dir=output_dir,
-                    overwrite=overwrite,
-                    on_chunk=on_chunk,
-                )
+        downloaded_files = list(
+            http_bulk_download(
+                urls=granule_paths,
+                output_dir=output_dir,
+                overwrite=overwrite,
+                on_chunk=on_chunk,
             )
-            + non_target_local_files
         )
+
+    if show_progress:
+        console.print(
+            f"Download complete: {format_size(progress.tasks[task_id].completed)}"
+            "downloaded."
+        )
+
+    return downloaded_files + non_target_local_files
 
 
 @authenticate
@@ -395,6 +400,9 @@ def subset(
     # dataset. This should emit a better error message for the user.
     product = get_product_from_short_name(product_short_name)
 
+    if console is None:
+        console = Console()
+
     logger.debug("Loading list of products supporting subsetting feature")
     with open(TDS_LAYOUT_CONFIG, encoding="utf-8") as f:
         tds_layout = yaml.safe_load(f)
@@ -438,16 +446,20 @@ def subset(
     with get_progress(show_progress, console, style=CountProgress()) as progress:
         task_id = progress.add_task("Subsetting", total=len(granule_paths))
         on_file_done = (lambda: progress.advance(task_id, 1)) if show_progress else None
-        return (
-            subset_multiple_files(
-                granule_paths,
-                target_local_files,
-                box,
-                selected_variables,
-                on_file_done=on_file_done,
-            )
-            + non_target_local_files
+        subsetted_files = subset_multiple_files(
+            granule_paths,
+            target_local_files,
+            box,
+            selected_variables,
+            on_file_done=on_file_done,
         )
+
+    if show_progress:
+        console.print(
+            f"Subsetting complete: {len(subsetted_files)}/{len(granule_paths)} file(s)."
+        )
+
+    return subsetted_files + non_target_local_files
 
 
 def _search_granules_with_overwrite(

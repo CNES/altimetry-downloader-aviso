@@ -269,6 +269,9 @@ def test_get_show_progress_true_advances_task(mocker, tmp_path):
     )
     mock_progress = mocker.MagicMock()
     mock_progress.add_task.return_value = "task-id"
+    mock_task = mocker.MagicMock()
+    mock_task.completed = 1024
+    mock_progress.tasks = {"task-id": mock_task}
     mocker.patch(
         "altimetry_downloader_aviso.core.get_progress"
     ).return_value.__enter__.return_value = mock_progress
