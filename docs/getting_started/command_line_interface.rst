@@ -194,7 +194,7 @@ This command downloads Swot LR L3 Basic, in the period from 2025-01-01 to 2025-0
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --start 2025-01-01 --end 2025-01-02 -y                                                                   
+    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --start 2025-01-01 --end 2025-01-02 -y
     About to download 29 file(s), estimated total size: 112.4 MB
     Downloading ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 117.9/117.9 MB 2.3 MB/s
     Download complete: 112.4 MB downloaded.
@@ -243,7 +243,7 @@ This command downloads Swot LR L3 Basic, cycle number 7, half-orbit 12, version 
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --cycle 7 --pass 12 --version 2.0.1 -y                                  
+    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --cycle 7 --pass 12 --version 2.0.1 -y
     About to download 1 file(s), estimated total size: 3.4 MB
     Downloading ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.6/3.6 MB 6.7 MB/s
     Download complete: 3.4 MB downloaded.
@@ -315,7 +315,7 @@ data in the area of interest, it will not be downloaded.
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso subset SWOT_L3_LR_SSH_Unsmoothed --box -10,10,10,40 --variables ssha_unfiltered,time --cycle 1 --pass 223,225,236 -o aviso_dir --version 2.0.1                                                                                                     
+    $ altimetry-downloader-aviso subset SWOT_L3_LR_SSH_Unsmoothed --box -10,10,10,40 --variables ssha_unfiltered,time --cycle 1 --pass 223,225,236 -o aviso_dir --version 2.0.1
     Subsetting ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1
     Subsetting complete: 1/1 file(s).
     Local files (1) :
