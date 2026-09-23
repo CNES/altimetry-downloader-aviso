@@ -20,6 +20,58 @@ def no_setup_env(mocker):
     mocker.patch("altimetry_downloader_aviso.auth._setup_auth_env")
 
 
+import subprocess
+import sys
+
+
+def test_init_validates_ncrc_file_on_import(tmp_path):
+    """_validate_ncrc_file() must run at package import time (not only lazily
+    from ensure_credentials()), so the .ncrc file is populated before netCDF4
+    is ever imported."""
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import altimetry_downloader_aviso",
+        ],
+        env={**os.environ, "HOME": str(tmp_path)},
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    ncrc_path = tmp_path / ".altimetry" / ".ncrc"
+    assert ncrc_path.exists()
+    assert "HTTP.NETRC" in ncrc_path.read_text()
+
+
+def test_init_ncrc_write_failure_warns_instead_of_crashing(tmp_path):
+    """If .ncrc cannot be written at import time (e.g. permission error),
+    importing the package must not crash -- only warn."""
+    home = tmp_path / "home"
+    home.mkdir()
+    altimetry_dir = home / ".altimetry"
+    altimetry_dir.mkdir()
+    altimetry_dir.chmod(0o500)  # read + execute only, no write
+
+    try:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import altimetry_downloader_aviso",
+            ],
+            env={**os.environ, "HOME": str(home)},
+            capture_output=True,
+            text=True,
+        )
+    finally:
+        altimetry_dir.chmod(0o700)  # allow cleanup of tmp_path
+
+    assert result.returncode == 0, result.stderr
+    assert "Could not validate netCDF4-c authentication file" in result.stderr
+
+
 def test_netcdf4_import():
     # netCDF4 must be imported as late as possible. Functions and modules triggering its
     # import has been moved to a separate module that is imported in a lazy fashion.

@@ -1,12 +1,12 @@
 import os
 import warnings
 
-from .auth import (
+from .auth import (  # isort: skip
     NCRC_PATH,
     _setup_auth_env,
     _validate_ncrc_file,
     ensure_credentials,
-)  # isort: skip
+)
 
 # Must run before any submodule import: some of them transitively load
 # netCDF4 (e.g. `altimetry_search_requests` -> pyinterp), and netCDF4-c
@@ -20,9 +20,12 @@ os.environ.setdefault("NCRCENV_RC", _setup_auth_env())
 try:
     _validate_ncrc_file()
 except OSError as e:
+    msg = (
+        f"Could not validate netCDF4-c authentication file ({NCRC_PATH}): {e}. "
+        "OpenDAP-based subsetting authentication may not work correctly."
+    )
     warnings.warn(
-        f"Could not configure netCDF4-c authentication file ({NCRC_PATH}): {e}. "
-        "OpenDAP-based subsetting authentication may not work correctly.",
+        msg,
         stacklevel=2,
     )
 
