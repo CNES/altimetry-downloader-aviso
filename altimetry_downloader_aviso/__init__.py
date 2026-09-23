@@ -1,4 +1,3 @@
-import os
 import warnings
 
 from .auth import (  # isort: skip
@@ -15,13 +14,13 @@ from .auth import (  # isort: skip
 # - NCRCENV_RC (which .ncrc file to read)
 # - the .ncrc file's content itself (the HTTP.NETRC entry), populated by
 #   _validate_ncrc_file()
-os.environ.setdefault("NCRCENV_RC", _setup_auth_env())
+_setup_auth_env()
 
 try:  # pragma: no cover -- exercised via subprocess in test_auth.py
     # (must run in a fresh process; see test_init_validates_ncrc_file_on_import
     # and test_init_ncrc_write_failure_warns_instead_of_crashing)
     _validate_ncrc_file()
-except OSError as e:
+except OSError as e:  # pragma: no cover
     msg = (
         f"Could not validate netCDF4-c authentication file ({NCRC_PATH}): {e}. "
         "OpenDAP-based subsetting authentication may not work correctly."
