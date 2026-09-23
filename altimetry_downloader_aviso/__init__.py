@@ -17,7 +17,9 @@ from .auth import (  # isort: skip
 #   _validate_ncrc_file()
 os.environ.setdefault("NCRCENV_RC", _setup_auth_env())
 
-try:
+try:  # pragma: no cover -- exercised via subprocess in test_auth.py
+    # (must run in a fresh process; see test_init_validates_ncrc_file_on_import
+    # and test_init_ncrc_write_failure_warns_instead_of_crashing)
     _validate_ncrc_file()
 except OSError as e:
     msg = (
