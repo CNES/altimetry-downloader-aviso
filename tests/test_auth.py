@@ -1,5 +1,7 @@
 import netrc
 import os
+import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import mock_open
 
@@ -18,10 +20,6 @@ from altimetry_downloader_aviso.auth import (
 @pytest.fixture(autouse=True)
 def no_setup_env(mocker):
     mocker.patch("altimetry_downloader_aviso.auth._setup_auth_env")
-
-
-import subprocess
-import sys
 
 
 def test_init_validates_ncrc_file_on_import(tmp_path):
