@@ -27,12 +27,8 @@ def test_init_validates_ncrc_file_on_import(tmp_path):
     from ensure_credentials()), so the .ncrc file is populated before netCDF4
     is ever imported."""
     result = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            "import altimetry_downloader_aviso",
-        ],
-        env={**os.environ, "HOME": str(tmp_path)},
+        [sys.executable, "-c", "import altimetry_downloader_aviso"],
+        env={**os.environ, "HOME": str(tmp_path), "USERPROFILE": str(tmp_path)},
         capture_output=True,
         text=True,
     )
@@ -44,27 +40,20 @@ def test_init_validates_ncrc_file_on_import(tmp_path):
 
 
 def test_init_ncrc_write_failure_warns_instead_of_crashing(tmp_path):
-    """If .ncrc cannot be written at import time (e.g. permission error),
+    """If .ncrc cannot be written at import time (e.g. a filesystem conflict),
     importing the package must not crash -- only warn."""
     home = tmp_path / "home"
     home.mkdir()
-    altimetry_dir = home / ".altimetry"
-    altimetry_dir.mkdir()
-    altimetry_dir.chmod(0o500)  # read + execute only, no write
+    # Put a *file* where .altimetry (a directory) is expected: mkdir() will
+    # fail with OSError.
+    (home / ".altimetry").write_text("not a directory")
 
-    try:
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                "import altimetry_downloader_aviso",
-            ],
-            env={**os.environ, "HOME": str(home)},
-            capture_output=True,
-            text=True,
-        )
-    finally:
-        altimetry_dir.chmod(0o700)  # allow cleanup of tmp_path
+    result = subprocess.run(
+        [sys.executable, "-c", "import altimetry_downloader_aviso"],
+        env={**os.environ, "HOME": str(home), "USERPROFILE": str(home)},
+        capture_output=True,
+        text=True,
+    )
 
     assert result.returncode == 0, result.stderr
     assert "Could not validate netCDF4-c authentication file" in result.stderr
