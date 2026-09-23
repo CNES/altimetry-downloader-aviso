@@ -1,6 +1,34 @@
 Release Notes
 =============
 
+0.8.0 (2026-09-23)
+------------------
+
+Added
+~~~~~
+
+A confirmation log message is now emitted once a download completes
+successfully in addition to the progress bar.
+
+Changed
+~~~~~~~
+
+``subset()`` (CLI and Python API) no longer applies to the L3 Basic and L3
+Expert products; Use ``get()`` to download these products in
+full.
+
+Fixed
+~~~~~
+
+Fixed an authentication error that occurred when calling ``subset()``
+before authentication had been configured (i.e. before any ``.netrc``/
+``.ncrc`` file existed). netCDF4-c caches its authentication configuration
+once, at its own import time rather than per connection; the required
+configuration file is now prepared as early as possible, when
+``altimetry_downloader_aviso`` itself is imported, instead of only when a
+download or subset is first attempted.
+
+
 0.7.0 (2026-09-15)
 ------------------
 

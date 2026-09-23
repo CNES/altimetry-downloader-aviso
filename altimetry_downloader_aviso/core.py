@@ -322,7 +322,7 @@ def get(
     if show_progress:
         console.print(
             f"Download complete: {format_size(progress.tasks[task_id].completed)}"
-            "downloaded."
+            " downloaded."
         )
 
     return downloaded_files + non_target_local_files

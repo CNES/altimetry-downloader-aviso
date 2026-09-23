@@ -164,9 +164,11 @@ This command downloads Swot LR L3 Basic, cycle number 7, half-orbits 12-13, and 
 .. code-block:: console
 
     $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --cycle 7 --pass 12,13
-    About to download 2 file(s),estimated total size: 7.7 MB
+    About to download 2 file(s), estimated total size: 7.7 MB
     Proceed with download? [y/N] y
-    Downloaded files (2) :
+    Downloading ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.0/8.0 MB 3.1 MB/s
+    Download complete: 7.7 MB downloaded.
+    Local files (2) :
     - aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v3.0.nc
     - aviso_dir/SWOT_L3_LR_SSH_Basic_007_013_20231123T202138_20231123T211304_v3.0.nc
 
@@ -192,8 +194,10 @@ This command downloads Swot LR L3 Basic, in the period from 2025-01-01 to 2025-0
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --start 2025-01-01 --end 2025-01-02 -y
-    About to download 29 file(s),estimated total size: 112.4 MB
+    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --start 2025-01-01 --end 2025-01-02 -y                                                                   
+    About to download 29 file(s), estimated total size: 112.4 MB
+    Downloading ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 117.9/117.9 MB 2.3 MB/s
+    Download complete: 112.4 MB downloaded.
     Local files (29) :
     - aviso_dir/SWOT_L3_LR_SSH_Basic_026_229_20241231T235043_20250101T004209_v3.0.nc
     - aviso_dir/SWOT_L3_LR_SSH_Basic_026_230_20250101T004210_20250101T013336_v3.0.nc
@@ -239,10 +243,13 @@ This command downloads Swot LR L3 Basic, cycle number 7, half-orbit 12, version 
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --cycle 7 --pass 12 --version 2.0.1 -y
-    About to download 1 file(s),estimated total size: 3.4 MB
+    $ altimetry-downloader-aviso get SWOT_L3_LR_SSH_Basic --output aviso_dir --cycle 7 --pass 12 --version 2.0.1 -y                                  
+    About to download 1 file(s), estimated total size: 3.4 MB
+    Downloading ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.6/3.6 MB 6.7 MB/s
+    Download complete: 3.4 MB downloaded.
     Local files (1) :
     - aviso_dir/SWOT_L3_LR_SSH_Basic_007_012_20231123T193011_20231123T202137_v2.0.1.nc
+
 
 **Example with box filter:**
 
@@ -250,7 +257,7 @@ Use ``--box``  option to download files representing passes that fall within the
 
 .. caution::
 
-    Since unsmoothed products are very large, it is recommended to use the ``subset`` command with filters to reduce the amount of data loaded, instead of downloading the entire passes with the ``get`` command.
+    Since L3 Unsmoothed products are very large, it is recommended to use the ``subset`` command with filters to reduce the amount of data loaded, instead of downloading the entire passes with the ``get`` command.
 
 This command downloads Swot LR L3 Unsmoothed passes that cross the specified bounding box (lon_min, lat_min, lon_max, lat_max)=(-10,10,10,40), and stores the requested files to /aviso_dir.
 
@@ -283,6 +290,15 @@ parametrized with:
   with the longitudes in any convention, and lon_min < lon_max
 * A subset of variables: ``--variables/-x`` parameter
 
+.. caution::
+
+    Subsetting is not implemented yet for the following products:
+        * L4_with_SWOT
+        * SWOT_L3_LR_SSH_Basic
+        * SWOT_L3_LR_SSH_Expert
+        * SWOT_L3_LR_WIND_WAVE_Light
+        * SWOT_L3_LR_WIND_WAVE_Extended
+        * SWOT_L2_LR_SSH_Unsmoothed
 
 **Usage:**
 
@@ -294,19 +310,14 @@ The filters used in the ``get`` command (cycle, pass, start, end, version, box) 
 be used to find the granules prior the subsetting. If a granule does not contain any
 data in the area of interest, it will not be downloaded.
 
-.. note::
-
-    Subsetting is not implemented yet for the following products:
-        * L4_with_SWOT
-        * SWOT_L3_LR_WIND_WAVE_Light
-        * SWOT_L3_LR_WIND_WAVE_Extended
-        * SWOT_L2_LR_SSH_Unsmoothed
 
 **Example**
 
 .. code-block:: console
 
-    $ altimetry-downloader-aviso subset SWOT_L3_LR_SSH_Unsmoothed --box -10,10,10,40 --variables ssha_unfiltered,time --cycle 1 --pass 223,225,236 -o aviso_dir --version 2.0.1
+    $ altimetry-downloader-aviso subset SWOT_L3_LR_SSH_Unsmoothed --box -10,10,10,40 --variables ssha_unfiltered,time --cycle 1 --pass 223,225,236 -o aviso_dir --version 2.0.1                                                                                                     
+    Subsetting ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1
+    Subsetting complete: 1/1 file(s).
     Local files (1) :
     - aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_223_20230729T035501_20230729T044628_v2.0.1.nc
 

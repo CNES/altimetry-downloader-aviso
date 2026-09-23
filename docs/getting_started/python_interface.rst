@@ -121,6 +121,18 @@ The ``box`` filter can be used to download a spatial subset of the product. It s
 
 An additional ``selected_variables`` filter can be used to download only a subset of the product variables. It should be provided as a list of strings.
 
+
+.. caution::
+
+    Subsetting is not implemented yet for the following products:
+        * L4_with_SWOT
+        * SWOT_L3_LR_SSH_Basic
+        * SWOT_L3_LR_SSH_Expert
+        * SWOT_L3_LR_WIND_WAVE_Light
+        * SWOT_L3_LR_WIND_WAVE_Extended
+        * SWOT_L2_LR_SSH_Unsmoothed
+
+
 .. code-block:: pycon
 
     >>> local_files = subset(
@@ -132,10 +144,6 @@ An additional ``selected_variables`` filter can be used to download only a subse
             pass_number=[223, 225, 236],
             version="3.0"
         )
-    INFO     Fetching products from Aviso's catalog...
-    INFO     Fetching products from Aviso's catalog...
-    INFO     Filtering SWOT_L3_LR_SSH_Unsmoothed product with filters {'cycle_number': [1], 'pass_number': [223], 'version': '2.0.1'}...
-    INFO     Subsetting 1 file(s)...
     >>> print(local_files)
     ['aviso_dir/SWOT_L3_LR_SSH_Unsmoothed_001_223_20230729T035501_20230729T044628_v3.0.nc']
 
